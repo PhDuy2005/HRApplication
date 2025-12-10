@@ -36,13 +36,13 @@ public class SecurityUtil {
         this.jwtEncoder = jwtEncoder;
     }
 
-    @Value("${hoidanit.jwt.base64-secret}")
+    @Value("${se347.jwt.base64-secret}")
     private String jwtKey;
 
-    @Value("${hoidanit.jwt.access-token-validity-in-seconds}")
+    @Value("${se347.jwt.access-token-validity-in-seconds}")
     private Long accessTokenExpiration;
 
-    @Value("${hoidanit.jwt.refresh-token-validity-in-seconds}")
+    @Value("${se347.jwt.refresh-token-validity-in-seconds}")
     private Long refreshTokenExpiration;
 
     public static final MacAlgorithm JWT_ALGORITHM = MacAlgorithm.from("HS256");

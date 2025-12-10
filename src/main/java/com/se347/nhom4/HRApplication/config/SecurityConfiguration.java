@@ -28,7 +28,7 @@ import com.se347.nhom4.HRApplication.util.SecurityUtil;
 @Configuration
 @EnableMethodSecurity(securedEnabled = true)
 public class SecurityConfiguration {
-    @Value("${hoidanit.jwt.base64-secret}")
+    @Value("${se347.jwt.base64-secret}")
     private String jwtKey;
 
     @Bean
