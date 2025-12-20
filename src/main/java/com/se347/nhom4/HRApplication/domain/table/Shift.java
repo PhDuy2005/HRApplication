@@ -94,7 +94,8 @@ public class Shift {
     /**
      * Mã màu để hiển thị trên UI (hex color).
      * Ví dụ: "#FF5733" (màu cam)
-     * Kduii: wtf có cần ko nhỉ
+     * Kduii: wtf có cần ko nhỉ 
+     * Uyen: sài thử đi
      */
     @Column(name = "color_code", length = 7)
     private String colorCode;
