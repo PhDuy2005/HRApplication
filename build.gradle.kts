@@ -43,6 +43,7 @@ dependencies {
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.14") // OpenAPI/Swagger
+
 }
 
 tasks.withType<Test> {
