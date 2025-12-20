@@ -80,9 +80,7 @@ public class Shift {
      * Ví dụ: Ca 8 tiếng, làm 10 tiếng → 2 tiếng OT
      */
     @Column(name = "standard_hours", nullable = false)
-    private Double standardHours = endTime.isAfter(startTime)
-            ? (double) java.time.Duration.between(startTime, endTime).toHours()
-            : (double) java.time.Duration.between(startTime, endTime.plusHours(24)).toHours();
+    private Double standardHours;
 
     /**
      * Ca này có active không.
@@ -94,7 +92,8 @@ public class Shift {
     /**
      * Mã màu để hiển thị trên UI (hex color).
      * Ví dụ: "#FF5733" (màu cam)
-     * Kduii: wtf có cần ko nhỉ
+     * Kduii: wtf có cần ko nhỉ 
+     * Uyen: sài thử đi
      */
     @Column(name = "color_code", length = 7)
     private String colorCode;
@@ -127,12 +126,4 @@ public class Shift {
         updatedBy = SecurityUtil.getCurrentUserLogin().orElse("system");
     }
 
-    /**
-     * Kiểm tra ca này có qua đêm không.
-     * 
-     * @return true nếu endTime < startTime
-     */
-    public boolean isOvernightShift() {
-        return endTime.isBefore(startTime);
-    }
 }

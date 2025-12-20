@@ -12,10 +12,11 @@ EMPLOYEE {
 
 	SHIFT {
 		int id PK ""  
-		string name  ""  
-		string description  ""  
+		string name  ""  unique
+		string description  ""  nullable
 		time start  ""  
 		time end  ""  
+		double standard_hours ""
 		bool isActive  ""  
 	}
 
@@ -30,7 +31,7 @@ EMPLOYEE {
 		int id PK ""  
 		int employeeId FK ""  
 		int workScheduleId FK "NULLABLE"
-        datetime workDate ""  
+    datetime workDate ""  
 		datetime checkIn  ""  
 		datetime checkOut  ""  
 		int totalWorkTime  ""  
