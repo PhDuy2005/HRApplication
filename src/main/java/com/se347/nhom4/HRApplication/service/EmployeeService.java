@@ -7,6 +7,7 @@ import java.util.Optional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.se347.nhom4.HRApplication.domain.requestDTO.ReqCreateEmpDTO;
 import com.se347.nhom4.HRApplication.domain.table.Employee;
 import com.se347.nhom4.HRApplication.repository.EmployeeRepository;
 
@@ -47,6 +48,19 @@ public class EmployeeService {
      */
     public Employee createEmployee(Employee employee) {
         employee.setPassword(passwordEncoder.encode(employee.getPassword()));
+        return employeeRepository.save(employee);
+    }
+
+    /**
+     * Create a new employee.
+     * 
+     * @param employee the employee DTO object to create.
+     * @return The created employee.
+     */
+    public Employee createEmployee(ReqCreateEmpDTO dto) {
+        dto.setPassword(passwordEncoder.encode(dto.getPassword())); // hash pwd trước khi mapping sang Entity
+        Employee employee = new Employee(dto);
+
         return employeeRepository.save(employee);
     }
 
