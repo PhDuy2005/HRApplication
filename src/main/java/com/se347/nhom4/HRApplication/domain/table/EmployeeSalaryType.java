@@ -100,7 +100,7 @@ public class EmployeeSalaryType {
 
     public EmployeeSalaryType(ReqCreateEmpDTO.CreateEmpSalaryType dto) {
         this.salaryType = dto.getSalaryType();
-        this.effectiveFrom = dto.getEffectiveFrom();
+        this.effectiveFrom = dto.getEffectiveFrom() != null ? dto.getEffectiveFrom() : Instant.now();
         this.effectiveTo = dto.getEffectiveTo();
         this.note = dto.getNote();
     }

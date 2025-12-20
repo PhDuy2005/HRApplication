@@ -40,16 +40,22 @@ public class EmployeeController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping
-    @ApiMessage("Tạo mới nhân viên")
-    public ResponseEntity<ResEmployeeInfo> createEmployee(@RequestBody Employee employee) {
-        System.out.println(">>>EMPLOYEE MODULE: Creating employee: " + employee.getEmail());
-        Employee createdEmployee = employeeService.createEmployee(employee);
-        System.out.println(">>>EMPLOYEE MODULE: Created employee with ID: " + createdEmployee.getId());
-        System.out.println(">>>EMPLOYEE MODULE: Created employee with fullname: " + createdEmployee.getFullname());
-        System.out.println(">>>EMPLOYEE MODULE: Created employee with email: " + createdEmployee.getEmail());
-        return ResponseEntity.status(HttpStatus.CREATED).body(new ResEmployeeInfo(createdEmployee));
-    }
+    // @PostMapping
+    // @ApiMessage("Tạo mới nhân viên")
+    // public ResponseEntity<ResEmployeeInfo> createEmployee(@RequestBody Employee
+    // employee) {
+    // System.out.println(">>>EMPLOYEE MODULE: Creating employee: " +
+    // employee.getEmail());
+    // Employee createdEmployee = employeeService.createEmployee(employee);
+    // System.out.println(">>>EMPLOYEE MODULE: Created employee with ID: " +
+    // createdEmployee.getId());
+    // System.out.println(">>>EMPLOYEE MODULE: Created employee with fullname: " +
+    // createdEmployee.getFullname());
+    // System.out.println(">>>EMPLOYEE MODULE: Created employee with email: " +
+    // createdEmployee.getEmail());
+    // return ResponseEntity.status(HttpStatus.CREATED).body(new
+    // ResEmployeeInfo(createdEmployee));
+    // }
 
     @PostMapping
     @ApiMessage("Tạo mới nhân viên")

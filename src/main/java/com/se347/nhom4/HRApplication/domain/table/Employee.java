@@ -108,6 +108,7 @@ public class Employee {
 
         this.employeeSalaryTypes = new ArrayList<>();
         EmployeeSalaryType empSalaryType = new EmployeeSalaryType(dto.getEmpSalaryType());
+        System.out.println(">>>CREATE EMPLOYEE MODULE: Type of salary: " + empSalaryType.getSalaryType());
         empSalaryType.setEmployee(this);
         this.employeeSalaryTypes.add(empSalaryType);
 
@@ -131,7 +132,8 @@ public class Employee {
                 shiftRate.setDayType(rateDTO.getDayType());
                 shiftRate.setBaseRate(rateDTO.getBaseRate());
                 shiftRate.setRateMultiplier(rateDTO.getRateMultiplier());
-                shiftRate.setEffectiveFrom(rateDTO.getEffectiveFrom());
+                shiftRate.setEffectiveFrom(
+                        rateDTO.getEffectiveFrom() != null ? rateDTO.getEffectiveFrom() : Instant.now());
                 shiftRate.setEffectiveTo(rateDTO.getEffectiveTo());
                 shiftRate.setIsActive(rateDTO.getIsActive() != null ? rateDTO.getIsActive() : true);
 

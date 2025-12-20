@@ -80,9 +80,11 @@ public class Shift {
      * Ví dụ: Ca 8 tiếng, làm 10 tiếng → 2 tiếng OT
      */
     @Column(name = "standard_hours", nullable = false)
-    private Double standardHours = endTime.isAfter(startTime)
-            ? (double) java.time.Duration.between(startTime, endTime).toHours()
-            : (double) java.time.Duration.between(startTime, endTime.plusHours(24)).toHours();
+    private Double standardHours;
+    // = endTime.isAfter(startTime)
+    // ? (double) java.time.Duration.between(startTime, endTime).toHours()
+    // : (double) java.time.Duration.between(startTime,
+    // endTime.plusHours(24)).toHours();
 
     /**
      * Ca này có active không.
@@ -118,6 +120,12 @@ public class Shift {
         createdBy = SecurityUtil.getCurrentUserLogin().orElse("system");
         if (isActive == null) {
             isActive = true;
+        }
+        if (startTime != null && endTime != null) {
+
+            standardHours = endTime.isAfter(startTime)
+                    ? (double) java.time.Duration.between(startTime, endTime).toHours()
+                    : (double) java.time.Duration.between(startTime, endTime.plusHours(24)).toHours();
         }
     }
 

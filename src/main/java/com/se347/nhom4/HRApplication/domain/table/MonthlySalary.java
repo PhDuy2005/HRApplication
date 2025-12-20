@@ -136,7 +136,7 @@ public class MonthlySalary {
     public MonthlySalary(ReqCreateEmpDTO.CreateEmpMonthlySalary dto) {
         this.baseSalary = dto.getBaseSalary();
         this.allowance = dto.getAllowance();
-        this.effectiveFrom = dto.getEffectiveFrom();
+        this.effectiveFrom = dto.getEffectiveFrom() != null ? dto.getEffectiveFrom() : Instant.now();
         this.effectiveTo = dto.getEffectiveTo();
         this.performanceMultiplier = dto.getPerformanceMultiplier();
         this.note = dto.getNote();
