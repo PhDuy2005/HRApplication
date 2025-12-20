@@ -1,5 +1,7 @@
 package com.se347.nhom4.HRApplication.service;
 
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -9,10 +11,19 @@ import org.springframework.stereotype.Service;
 
 import com.se347.nhom4.HRApplication.domain.requestDTO.ReqCreateEmpDTO;
 import com.se347.nhom4.HRApplication.domain.table.Employee;
+import com.se347.nhom4.HRApplication.domain.table.EmployeeSalaryType;
+import com.se347.nhom4.HRApplication.domain.table.MonthlySalary;
+import com.se347.nhom4.HRApplication.domain.table.ShiftBaseRate;
+import com.se347.nhom4.HRApplication.domain.table.ShiftRate;
+import com.se347.nhom4.HRApplication.domain.table.ShiftSpecialRate;
 import com.se347.nhom4.HRApplication.repository.EmployeeRepository;
+import com.se347.nhom4.HRApplication.repository.ShiftRepository;
+import com.se347.nhom4.HRApplication.util.enums.SalaryTypeEnum;
+import com.se347.nhom4.HRApplication.util.enums.StatusEnum;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import net.bytebuddy.asm.Advice.OffsetMapping.Factory.Illegal;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +31,7 @@ public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ShiftRepository shiftRepository;
 
     /**
      * Get all employees from database.
@@ -43,23 +55,13 @@ public class EmployeeService {
     /**
      * Create a new employee.
      * 
-     * @param employee the employee object to create.
-     * @return The created employee.
-     */
-    public Employee createEmployee(Employee employee) {
-        employee.setPassword(passwordEncoder.encode(employee.getPassword()));
-        return employeeRepository.save(employee);
-    }
-
-    /**
-     * Create a new employee.
-     * 
      * @param employee the employee DTO object to create.
      * @return The created employee.
      */
     public Employee createEmployee(ReqCreateEmpDTO dto) {
         dto.setPassword(passwordEncoder.encode(dto.getPassword())); // hash pwd trước khi mapping sang Entity
-        Employee employee = new Employee(dto);
+        this.checkUniquePhoneAndEmail(dto.getPhone(), dto.getEmail());
+        Employee employee = this.toEmployeeEntity(dto);
 
         return employeeRepository.save(employee);
     }
@@ -77,6 +79,7 @@ public class EmployeeService {
         if (curEmployee == null) {
             throw new IllegalArgumentException("Employee not found with id " + id);
         }
+        this.checkUniquePhoneAndEmail(employee.getPhone(), employee.getEmail());
         if (employee.getFullname() != null)
             curEmployee.setFullname(employee.getFullname());
         if (employee.getEmail() != null)
@@ -149,5 +152,92 @@ public class EmployeeService {
             throw new NoSuchElementException("User with email " + email + " does not exist");
         }
         user.setRefreshToken(null);
+    }
+
+    /**
+     * Check if the phone and email are unique.
+     * 
+     * @throws IllegalArgumentException if the phone or email given is already
+     *                                  existed.
+     * @param email the email of the user to check.
+     * @param phone the phone number of the user to check.
+     * @return If both phone and email are unique, return nothing.
+     */
+    private void checkUniquePhoneAndEmail(String phone, String email) {
+
+        if (this.employeeRepository.existsByPhone(phone)) {
+            System.err.println(">>>EMPLOYEE MODULE: Phone number " + phone
+                    + " already exists. An IllegalArgumentException will be thrown.");
+            throw new IllegalArgumentException("Phone number " + phone + " already exists");
+            // return false; // Phone already exists
+        }
+
+        if (this.employeeRepository.existsByEmail(email)) {
+            System.err.println(">>>EMPLOYEE MODULE: Email " + email
+                    + " already exists. An IllegalArgumentException will be thrown.");
+            throw new IllegalArgumentException("Email " + email + " already exists");
+            // return false; // Email already exists
+        }
+        // return true; // Both phone and email are unique
+    }
+
+    /**
+     * Handle logout user by clearing their refresh token.
+     * 
+     * @param dto the ReqCreateEmpDTO contains employee creation data.
+     * @return Return Employee entity mapped from the DTO.
+     */
+    public Employee toEmployeeEntity(ReqCreateEmpDTO dto) {
+        System.out.println(">>>CREATE EMPLOYEE MODULE: Trying to Map ReqCreateEmpDTO to Employee entity");
+        Employee newEmp = new Employee();
+        newEmp.setFullname(dto.getFullname());
+        newEmp.setEmail(dto.getEmail());
+        newEmp.setPassword(dto.getPassword());
+        newEmp.setPhone(dto.getPhone());
+        newEmp.setHiredDate(dto.getHiredDate() != null ? dto.getHiredDate() : Instant.now());
+        newEmp.setStatus(dto.getStatus() != null ? dto.getStatus() : StatusEnum.ACTIVE);
+
+        newEmp.setEmployeeSalaryTypes(new ArrayList<>());
+        EmployeeSalaryType empSalaryType = new EmployeeSalaryType(dto.getEmpSalaryType());
+        System.out.println(">>>CREATE EMPLOYEE MODULE: Type of salary: " + empSalaryType.getSalaryType());
+        empSalaryType.setEmployee(newEmp);
+        newEmp.getEmployeeSalaryTypes().add(empSalaryType);
+        if (empSalaryType.getSalaryType() == SalaryTypeEnum.SHIFT) {
+            // newEmp.setShiftRates(new ArrayList<>());
+            List<ShiftRate> empShiftRates = new ArrayList<>();
+            for (ReqCreateEmpDTO.CreateEmpShiftRate rateDTO : dto.getEmpShiftRates()) {
+                ShiftRate shiftRate;
+                if (rateDTO.getShiftId() == null) {
+                    // Tạo ShiftBaseRate
+                    shiftRate = new ShiftBaseRate();
+                } else {
+                    // Tạo ShiftSpecialRate
+                    ShiftSpecialRate specialRate = new ShiftSpecialRate();
+                    specialRate.setShift(this.shiftRepository.findById(rateDTO.getShiftId()).orElse(null));
+                    specialRate.setPriority(rateDTO.getPriority());
+                    specialRate.setNote(rateDTO.getNote());
+                    shiftRate = specialRate;
+                }
+                shiftRate.setEmployee(newEmp);
+                shiftRate.setDayType(rateDTO.getDayType());
+                shiftRate.setBaseRate(rateDTO.getBaseRate());
+                shiftRate.setRateMultiplier(rateDTO.getRateMultiplier());
+                shiftRate.setEffectiveFrom(
+                        rateDTO.getEffectiveFrom() != null ? rateDTO.getEffectiveFrom() : Instant.now());
+                shiftRate.setEffectiveTo(rateDTO.getEffectiveTo());
+                shiftRate.setIsActive(rateDTO.getIsActive() != null ? rateDTO.getIsActive() : true);
+
+                empShiftRates.add(shiftRate);
+            }
+            newEmp.setShiftRates(empShiftRates);
+        } else if (empSalaryType.getSalaryType() == SalaryTypeEnum.MONTHLY) {
+            newEmp.setMonthlySalaries(new ArrayList<>());
+            List<MonthlySalary> empMonthlySalaries = new ArrayList<>();
+            MonthlySalary monthlySalary = new MonthlySalary(dto.getEmpMonthlySalary());
+            monthlySalary.setEmployee(newEmp);
+            empMonthlySalaries.add(monthlySalary);
+            newEmp.setMonthlySalaries(empMonthlySalaries);
+        }
+        return newEmp;
     }
 }

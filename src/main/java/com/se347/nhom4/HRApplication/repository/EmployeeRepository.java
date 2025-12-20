@@ -11,5 +11,11 @@ import com.se347.nhom4.HRApplication.domain.table.Employee;
 public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     Optional<Employee> findByEmail(String email);
 
+    Optional<Employee> findByPhone(String phone);
+
+    boolean existsByEmail(String email);
+
+    boolean existsByPhone(String phone);
+
     Employee findByEmailAndRefreshToken(String email, String refreshToken);
 }

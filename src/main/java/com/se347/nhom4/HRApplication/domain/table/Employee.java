@@ -94,60 +94,6 @@ public class Employee {
      **/
 
     /**
-     * Constructor để tạo Employee từ ReqCreateEmpDTO.
-     * 
-     * @return Employee entity
-     */
-    public Employee(ReqCreateEmpDTO dto) {
-        this.fullname = dto.getFullname();
-        this.email = dto.getEmail();
-        this.password = dto.getPassword();
-        this.phone = dto.getPhone();
-        this.hiredDate = dto.getHiredDate() != null ? dto.getHiredDate() : Instant.now();
-        this.status = dto.getStatus() != null ? dto.getStatus() : StatusEnum.ACTIVE;
-
-        this.employeeSalaryTypes = new ArrayList<>();
-        EmployeeSalaryType empSalaryType = new EmployeeSalaryType(dto.getEmpSalaryType());
-        System.out.println(">>>CREATE EMPLOYEE MODULE: Type of salary: " + empSalaryType.getSalaryType());
-        empSalaryType.setEmployee(this);
-        this.employeeSalaryTypes.add(empSalaryType);
-
-        if (empSalaryType.getSalaryType() == SalaryTypeEnum.SHIFT) {
-            this.shiftRates = new ArrayList<>();
-            for (ReqCreateEmpDTO.CreateEmpShiftRate rateDTO : dto.getEmpShiftRates()) {
-                ShiftRate shiftRate;
-                if (rateDTO.getShiftId() == null) {
-                    // Tạo ShiftBaseRate
-                    shiftRate = new ShiftBaseRate();
-                } else {
-                    // Tạo ShiftSpecialRate
-                    ShiftSpecialRate specialRate = new ShiftSpecialRate();
-                    // specialRate.setShift(rateDTO.getShiftId()); // sẽ set sau khi fetch Shift
-                    // entity
-                    specialRate.setPriority(rateDTO.getPriority());
-                    specialRate.setNote(rateDTO.getNote());
-                    shiftRate = specialRate;
-                }
-                shiftRate.setEmployee(this);
-                shiftRate.setDayType(rateDTO.getDayType());
-                shiftRate.setBaseRate(rateDTO.getBaseRate());
-                shiftRate.setRateMultiplier(rateDTO.getRateMultiplier());
-                shiftRate.setEffectiveFrom(
-                        rateDTO.getEffectiveFrom() != null ? rateDTO.getEffectiveFrom() : Instant.now());
-                shiftRate.setEffectiveTo(rateDTO.getEffectiveTo());
-                shiftRate.setIsActive(rateDTO.getIsActive() != null ? rateDTO.getIsActive() : true);
-
-                this.shiftRates.add(shiftRate);
-            }
-        } else if (empSalaryType.getSalaryType() == SalaryTypeEnum.MONTHLY) {
-            this.monthlySalaries = new ArrayList<>();
-            MonthlySalary monthlySalary = new MonthlySalary(dto.getEmpMonthlySalary());
-            monthlySalary.setEmployee(this);
-            this.monthlySalaries.add(monthlySalary);
-        }
-    }
-
-    /**
      * CÁC HÀM KHÁC
      **/
 
