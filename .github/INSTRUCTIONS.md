@@ -123,6 +123,36 @@ public static final String JWT_ALGORITHM = "HS512";
 public static final int maxPageSize = 2000;
 ```
 
+#### Enums
+- **PascalCase** for enum class names with **Enum** suffix
+- **UPPER_SNAKE_CASE** for enum constants
+```java
+// ✅ Good
+/**
+ * Enum định nghĩa các loại hình lương của nhân viên.
+ */
+public enum SalaryTypeEnum {
+    SHIFT("Lương theo ca"),
+    MONTHLY("Lương tháng");
+
+    private final String description;
+
+    SalaryTypeEnum(String description) {
+        this.description = description;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+}
+
+// ❌ Bad - thiếu suffix Enum
+public enum SalaryType {
+    SHIFT,
+    MONTHLY;
+}
+```
+
 #### Packages
 - **lowercase** only
 - Use reverse domain naming
@@ -458,118 +488,217 @@ Authorization: Bearer {access_token}
 
 ### Exception Hierarchy
 
+Project sử dụng các Exception có sẵn của Spring và Java:
+
 ```
-RuntimeException
-├── ResourceNotFoundException (404)
-├── BadRequestException (400)
-├── UnauthorizedException (401)
-├── ForbiddenException (403)
-└── ConflictException (409)
+Exception
+├── IllegalArgumentException (400 Bad Request)
+├── NoSuchElementException (404 Not Found)
+├── NoResourceFoundException (404 Not Found)
+├── BadRequestException (400/401 - tuỳ message)
+├── UsernameNotFoundException (400 Bad Request)
+├── BadCredentialsException (400 Bad Request)
+├── AccessDeniedException (403 Forbidden)
+├── InsufficientAuthenticationException (401 Unauthorized)
+├── MethodArgumentNotValidException (400 Bad Request - validation)
+└── Exception (500 Internal Server Error)
 ```
 
-### Custom Exception Classes
+### Response DTO
+
+File: `RestResponse.java`
 
 ```java
-@ResponseStatus(HttpStatus.NOT_FOUND)
-public class ResourceNotFoundException extends RuntimeException {
-    public ResourceNotFoundException(String message) {
-        super(message);
-    }
-}
-
-@ResponseStatus(HttpStatus.BAD_REQUEST)
-public class BadRequestException extends RuntimeException {
-    public BadRequestException(String message) {
-        super(message);
-    }
+@Getter
+@Setter
+public class RestResponse<T> {
+    private int statusCode;
+    private String error;
+    private Object message;  // Có thể là String hoặc List<String>
+    private T data;
 }
 ```
 
 ### Global Exception Handler
 
-Create `GlobalExceptionHandler.java`:
+File: `util/error/GlobalException.java`
 
 ```java
 @RestControllerAdvice
-public class GlobalExceptionHandler {
-    
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleResourceNotFound(
-            ResourceNotFoundException ex, 
-            WebRequest request) {
-        
-        ErrorResponse error = ErrorResponse.builder()
-                .status(HttpStatus.NOT_FOUND.value())
-                .message(ex.getMessage())
-                .timestamp(LocalDateTime.now())
-                .path(request.getDescription(false))
-                .build();
-                
-        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+public class GlobalException {
+
+    // Xử lý tất cả exception không được catch
+    @ExceptionHandler(value = Exception.class)
+    public ResponseEntity<RestResponse<Object>> handleAllExceptions(Exception ex) {
+        RestResponse<Object> restResponse = new RestResponse<>();
+        restResponse.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        restResponse.setError("An unexpected Internal server error occurred");
+        restResponse.setMessage(ex.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(restResponse);
     }
-    
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidationException(
-            MethodArgumentNotValidException ex,
-            WebRequest request) {
-        
-        List<FieldError> fieldErrors = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(error -> new FieldError(
-                    error.getField(),
-                    error.getDefaultMessage()
-                ))
-                .collect(Collectors.toList());
-        
-        ErrorResponse error = ErrorResponse.builder()
-                .status(HttpStatus.BAD_REQUEST.value())
-                .message("Validation failed")
-                .errors(fieldErrors)
-                .timestamp(LocalDateTime.now())
-                .path(request.getDescription(false))
-                .build();
-                
-        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+
+    // Xử lý lỗi login/authentication
+    @ExceptionHandler(value = {
+            UsernameNotFoundException.class,
+            BadCredentialsException.class
+    })
+    public ResponseEntity<Object> handleSecurityException(Exception ex) {
+        RestResponse<Object> res = new RestResponse<Object>();
+        res.setStatusCode(HttpStatus.BAD_REQUEST.value());
+        res.setError("Exception about login function occurs...");
+        res.setMessage(ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST.value()).body(res);
     }
-    
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGlobalException(
-            Exception ex,
-            WebRequest request) {
+
+    // Xử lý lỗi validation (@Valid)
+    @ExceptionHandler(value = MethodArgumentNotValidException.class)
+    public ResponseEntity<RestResponse<Object>> handleValidationError(
+            MethodArgumentNotValidException ex) {
+        RestResponse<Object> restResponse = new RestResponse<>();
+
+        BindingResult bindingResult = ex.getBindingResult();
+        final List<FieldError> fieldErrors = bindingResult.getFieldErrors();
+
+        restResponse.setStatusCode(HttpStatus.BAD_REQUEST.value());
+        restResponse.setError(ex.getBody().getDetail());
+
+        List<String> errorMessages = fieldErrors.stream()
+                .map(FieldError::getDefaultMessage)
+                .toList();
+        restResponse.setMessage(errorMessages.size() > 1 ? errorMessages : errorMessages.get(0));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(restResponse);
+    }
+
+    // Xử lý IllegalArgumentException
+    @ExceptionHandler(value = IllegalArgumentException.class)
+    public ResponseEntity<RestResponse<Object>> handleIllegalArgumentException(IllegalArgumentException ex) {
+        RestResponse<Object> restResponse = new RestResponse<>();
+        restResponse.setStatusCode(HttpStatus.BAD_REQUEST.value());
+        restResponse.setError("Illegal argument exception occurs...");
+        restResponse.setMessage(ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(restResponse);
+    }
+
+    // Xử lý NoSuchElementException (không tìm thấy entity)
+    @ExceptionHandler(value = NoSuchElementException.class)
+    public ResponseEntity<RestResponse<Object>> handleNoSuchElementException(NoSuchElementException ex) {
+        RestResponse<Object> restResponse = new RestResponse<>();
+        restResponse.setStatusCode(HttpStatus.NOT_FOUND.value());
+        restResponse.setError("No such element found...");
+        restResponse.setMessage(ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(restResponse);
+    }
+
+    // Xử lý NoResourceFoundException (404 - không tìm thấy URL)
+    @ExceptionHandler(value = NoResourceFoundException.class)
+    public ResponseEntity<RestResponse<Object>> handleNoResourceFoundException(NoResourceFoundException ex) {
+        RestResponse<Object> restResponse = new RestResponse<>();
+        restResponse.setStatusCode(HttpStatus.NOT_FOUND.value());
+        restResponse.setError("404 Error. No resource found... Please check your URL");
+        restResponse.setMessage(ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(restResponse);
+    }
+
+    // Xử lý BadRequestException (custom logic cho refresh token)
+    @ExceptionHandler(value = BadRequestException.class)
+    public ResponseEntity<RestResponse<Object>> handleBadRequestException(BadRequestException ex) {
+        RestResponse<Object> restResponse = new RestResponse<>();
+        restResponse.setStatusCode(HttpStatus.BAD_REQUEST.value());
         
-        ErrorResponse error = ErrorResponse.builder()
-                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .message("Internal server error")
-                .timestamp(LocalDateTime.now())
-                .path(request.getDescription(false))
-                .build();
-                
-        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+        // Special case cho refresh token
+        if (ex.getMessage().equals("No refresh token provided") || 
+            ex.getMessage().equals("Invalid refresh token")) {
+            restResponse.setError("401 Unauthorized Exception occurs: Invalid refresh token");
+            restResponse.setMessage(ex.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(restResponse);
+        }
+        
+        restResponse.setError("400 Bad Request Exception occurs... Please check your request's header or payload");
+        restResponse.setMessage(ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(restResponse);
+    }
+
+    // Xử lý AccessDeniedException (403 Forbidden)
+    @ExceptionHandler(value = AccessDeniedException.class)
+    public ResponseEntity<RestResponse<Object>> handleAccessDeniedException(AccessDeniedException ex) {
+        RestResponse<Object> restResponse = new RestResponse<>();
+        restResponse.setStatusCode(HttpStatus.FORBIDDEN.value());
+        restResponse.setError("403 Forbidden Exception occurs: Access is denied");
+        restResponse.setMessage(ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(restResponse);
+    }
+
+    // Xử lý InsufficientAuthenticationException (chưa login)
+    @ExceptionHandler(value = InsufficientAuthenticationException.class)
+    public ResponseEntity<RestResponse<Object>> handleInsufficientAuthenticationException(
+            InsufficientAuthenticationException ex) {
+        RestResponse<Object> restResponse = new RestResponse<>();
+        restResponse.setStatusCode(HttpStatus.UNAUTHORIZED.value());
+        restResponse.setError("401 Unauthorized Exception occurs: You must login first");
+        restResponse.setMessage(ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(restResponse);
     }
 }
 ```
 
-### Error Response DTO
+### Ví dụ Response Format
 
-```java
-@Data
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
-public class ErrorResponse {
-    private int status;
-    private String message;
-    private List<FieldError> errors;
-    private LocalDateTime timestamp;
-    private String path;
+**Success Response:**
+```json
+{
+  "statusCode": 200,
+  "error": null,
+  "message": "Lấy danh sách nhân viên thành công",
+  "data": [
+    {
+      "id": 1,
+      "fullname": "Nguyễn Văn A",
+      "email": "nguyenvana@example.com"
+    }
+  ]
 }
+```
 
-@Data
-@AllArgsConstructor
-public class FieldError {
-    private String field;
-    private String message;
+**Error Response (Single validation error):**
+```json
+{
+  "statusCode": 400,
+  "error": "Validation failed",
+  "message": "Email không được để trống",
+  "data": null
+}
+```
+
+**Error Response (Multiple validation errors):**
+```json
+{
+  "statusCode": 400,
+  "error": "Validation failed", 
+  "message": [
+    "Email không được để trống",
+    "Số điện thoại phải có 10 chữ số"
+  ],
+  "data": null
+}
+```
+
+**Error Response (Not Found):**
+```json
+{
+  "statusCode": 404,
+  "error": "No such element found...",
+  "message": "Không tìm thấy nhân viên với ID: 999",
+  "data": null
+}
+```
+
+**Error Response (Unauthorized):**
+```json
+{
+  "statusCode": 401,
+  "error": "401 Unauthorized Exception occurs: You must login first",
+  "message": "Full authentication is required to access this resource",
+  "data": null
 }
 ```
 
@@ -582,17 +711,31 @@ public class EmployeeService {
     
     private final EmployeeRepository employeeRepository;
     
+    /**
+     * Tìm nhân viên theo ID.
+     * 
+     * @param id ID của nhân viên cần tìm.
+     * @return Employee nếu tìm thấy.
+     * @throws NoSuchElementException nếu không tìm thấy.
+     */
     public Employee findById(Long id) {
         return employeeRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                    "Employee not found with id: " + id
+                .orElseThrow(() -> new NoSuchElementException(
+                    "Không tìm thấy nhân viên với ID: " + id
                 ));
     }
     
+    /**
+     * Tạo nhân viên mới.
+     * 
+     * @param employee Thông tin nhân viên cần tạo.
+     * @return Employee đã được tạo.
+     * @throws IllegalArgumentException nếu email đã tồn tại.
+     */
     public Employee createEmployee(Employee employee) {
         if (employeeRepository.existsByEmail(employee.getEmail())) {
-            throw new ConflictException(
-                "Employee with email " + employee.getEmail() + " already exists"
+            throw new IllegalArgumentException(
+                "Email " + employee.getEmail() + " đã tồn tại trong hệ thống"
             );
         }
         return employeeRepository.save(employee);
@@ -602,14 +745,24 @@ public class EmployeeService {
 
 ### Exception to Status Code Mapping
 
-| Exception                         | HTTP Status           | Code |
-| --------------------------------- | --------------------- | ---- |
-| `ResourceNotFoundException`       | Not Found             | 404  |
-| `BadRequestException`             | Bad Request           | 400  |
-| `IllegalArgumentException`        | Bad Request           | 400  |
-| `UnauthorizedException`           | Unauthorized          | 401  |
-| `UsernameNotFoundException`       | Unauthorized          | 401  |
-| `ForbiddenException`              | Forbidden             | 403  |
+| Exception                             | HTTP Status              | Code    | Sử dụng                                    |
+| ------------------------------------- | ------------------------ | ------- | ------------------------------------------ |
+| `NoSuchElementException`              | Not Found                | 404     | Không tìm thấy entity theo ID              |
+| `NoResourceFoundException`            | Not Found                | 404     | URL không tồn tại                          |
+| `IllegalArgumentException`            | Bad Request              | 400     | Tham số không hợp lệ, duplicate            |
+| `BadRequestException`                 | Bad Request/Unauthorized | 400/401 | Request không hợp lệ, refresh token issues |
+| `UsernameNotFoundException`           | Bad Request              | 400     | Username không tồn tại khi login           |
+| `BadCredentialsException`             | Bad Request              | 400     | Password sai                               |
+| `InsufficientAuthenticationException` | Unauthorized             | 401     | Chưa đăng nhập                             |
+| `AccessDeniedException`               | Forbidden                | 403     | Không có quyền truy cập                    |
+| `MethodArgumentNotValidException`     | Bad Request              | 400     | Validation failed (@Valid)                 |
+| `Exception`                           | Internal Server Error    | 500     | Lỗi server không xác định                  |
+
+---
+
+## 💾 Database Guidelines
+
+### Naming Conventions
 | `AccessDeniedException`           | Forbidden             | 403  |
 | `ConflictException`               | Conflict              | 409  |
 | `MethodArgumentNotValidException` | Bad Request           | 400  |
