@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
+import com.se347.nhom4.HRApplication.domain.requestDTO.ReqCreateEmpDTO;
 import com.se347.nhom4.HRApplication.util.SecurityUtil;
 
 import jakarta.persistence.Column;
@@ -81,14 +82,14 @@ public class MonthlySalary {
      * Thường là ngày tăng lương hoặc ngày ký hợp đồng.
      */
     @Column(name = "effective_from", nullable = false)
-    private LocalDate effectiveFrom;
+    private Instant effectiveFrom;
 
     /**
      * Ngày kết thúc áp dụng mức lương này.
      * NULL = đang áp dụng hiện tại
      */
     @Column(name = "effective_to")
-    private LocalDate effectiveTo;
+    private Instant effectiveTo;
 
     /**
      * Hệ số điều chỉnh lương dựa trên performance.
@@ -127,6 +128,23 @@ public class MonthlySalary {
 
     @Column(name = "updated_by", length = 100)
     private String updatedBy;
+
+    /**
+     * CÁC CONSTRUCTOR KHÔNG ĐƯỢC ĐỊNH NGHĨA BỞI ANNOTATION
+     **/
+
+    public MonthlySalary(ReqCreateEmpDTO.CreateEmpMonthlySalary dto) {
+        this.baseSalary = dto.getBaseSalary();
+        this.allowance = dto.getAllowance();
+        this.effectiveFrom = dto.getEffectiveFrom();
+        this.effectiveTo = dto.getEffectiveTo();
+        this.performanceMultiplier = dto.getPerformanceMultiplier();
+        this.note = dto.getNote();
+    }
+
+    /**
+     * CÁC HÀM KHÁC
+     **/
 
     @PrePersist
     protected void onCreate() {
@@ -171,6 +189,6 @@ public class MonthlySalary {
      * @return true nếu effectiveTo == null hoặc > now
      */
     public boolean isCurrentlyActive() {
-        return isActive && (effectiveTo == null || effectiveTo.isAfter(LocalDate.now()));
+        return isActive && (effectiveTo == null || effectiveTo.isAfter(Instant.now()));
     }
 }
