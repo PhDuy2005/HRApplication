@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.se347.nhom4.HRApplication.domain.requestDTO.ReqCreateEmpDTO;
 import com.se347.nhom4.HRApplication.domain.responseDTO.ResEmployeeInfo;
 import com.se347.nhom4.HRApplication.domain.table.Employee;
 import com.se347.nhom4.HRApplication.service.EmployeeService;
@@ -39,9 +40,26 @@ public class EmployeeController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    // @PostMapping
+    // @ApiMessage("Tạo mới nhân viên")
+    // public ResponseEntity<ResEmployeeInfo> createEmployee(@RequestBody Employee
+    // employee) {
+    // System.out.println(">>>EMPLOYEE MODULE: Creating employee: " +
+    // employee.getEmail());
+    // Employee createdEmployee = employeeService.createEmployee(employee);
+    // System.out.println(">>>EMPLOYEE MODULE: Created employee with ID: " +
+    // createdEmployee.getId());
+    // System.out.println(">>>EMPLOYEE MODULE: Created employee with fullname: " +
+    // createdEmployee.getFullname());
+    // System.out.println(">>>EMPLOYEE MODULE: Created employee with email: " +
+    // createdEmployee.getEmail());
+    // return ResponseEntity.status(HttpStatus.CREATED).body(new
+    // ResEmployeeInfo(createdEmployee));
+    // }
+
     @PostMapping
     @ApiMessage("Tạo mới nhân viên")
-    public ResponseEntity<ResEmployeeInfo> createEmployee(@RequestBody Employee employee) {
+    public ResponseEntity<ResEmployeeInfo> createEmployeeWithDTO(@RequestBody ReqCreateEmpDTO employee) {
         System.out.println(">>>EMPLOYEE MODULE: Creating employee: " + employee.getEmail());
         Employee createdEmployee = employeeService.createEmployee(employee);
         System.out.println(">>>EMPLOYEE MODULE: Created employee with ID: " + createdEmployee.getId());
