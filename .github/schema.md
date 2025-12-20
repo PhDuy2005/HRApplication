@@ -16,6 +16,7 @@ EMPLOYEE {
 		string description  ""  nullable
 		time start  ""  
 		time end  ""  
+		double standard_hours ""
 		bool isActive  ""  
 	}
 
