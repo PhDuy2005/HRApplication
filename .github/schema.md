@@ -63,7 +63,7 @@ EMPLOYEE {
 
 	SHIFT_OT_RATE {
 		int employeeId FK ""  
-		enum OtType  ""  
+		enum DayTypeEnum  ""  
 		long percentage  ""  
 	}
 
