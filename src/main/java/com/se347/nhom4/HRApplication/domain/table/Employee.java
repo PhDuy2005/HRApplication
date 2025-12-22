@@ -75,6 +75,26 @@ public class Employee {
      */
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL)
     private List<ShiftRate> shiftRates = new ArrayList<>();
+    /**
+     * Danh sách OT rates của nhân viên.
+     * Quan hệ 1-n: 1 Employee có nhiều ShiftOtRate.
+     */
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ShiftOtRate> shiftOtRates = new ArrayList<>();
+
+    /**
+     * Danh sách penalties của nhân viên.
+     * Quan hệ 1-n: 1 Employee có nhiều EmployeePenalty.
+     */
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<EmployeePenalty> employeePenalties = new ArrayList<>();
+
+    /**
+     * Danh sách attendance penalties của nhân viên.
+     * Quan hệ 1-n: 1 Employee có nhiều AttendancePenalty.
+     */
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<AttendancePenalty> attendancePenalties = new ArrayList<>();
 
     // Audit fields
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -146,70 +166,3 @@ public class Employee {
     }
 
 }
-
-/*
- * public class ReqCreateEmpDTO {
- * String fullname;
- * String email;
- * String password; // raw pwd
- * String phone;
- * 
- * Instant hiredDate;
- * StatusEnum status;
- * 
- * CreateEmpSalaryType empSalaryType;
- * 
- * List<CreateEmpShiftRate> empShiftRates;
- * 
- * CreateEmpMonthlySalary empMonthlySalary;
- * 
- * @Data
- * 
- * @AllArgsConstructor
- * 
- * @NoArgsConstructor
- * 
- * @Builder
- * public static class CreateEmpSalaryType {
- * private SalaryTypeEnum salaryType;
- * private Instant effectiveFrom;
- * private Instant effectiveTo;
- * }
- * 
- * @Data
- * 
- * @AllArgsConstructor
- * 
- * @NoArgsConstructor
- * 
- * @Builder
- * public static class CreateEmpShiftRate {
- * private DayTypeEnum dayType;
- * private Long baseRate; // Lương cơ bản theo ca. Đơn vị: VNĐ/h
- * private BigDecimal rateMultiplier; // Hệ số nhân lương theo ca
- * private Instant effectiveFrom;
- * private Instant effectiveTo;
- * private Boolean isActive;
- * 
- * // Fields cho ShiftSpecialRate (nếu shiftId != null)
- * private Long shiftId; // null = base rate, not null = special rate
- * private Integer priority;
- * private String note;
- * }
- * 
- * @Data
- * 
- * @AllArgsConstructor
- * 
- * @NoArgsConstructor
- * 
- * @Builder
- * public static class CreateEmpMonthlySalary {
- * private BigDecimal baseSalary;
- * private BigDecimal allowance;
- * private BigDecimal performanceMultiplier;
- * private Instant effectiveFrom;
- * private Instant effectiveTo;
- * }
- * }
- */
