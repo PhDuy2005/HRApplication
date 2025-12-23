@@ -141,5 +141,6 @@ public abstract class ShiftRate {
         BigDecimal baseRateBD = BigDecimal.valueOf(baseRate);
         BigDecimal total = baseRateBD.multiply(rateMultiplier).multiply(hoursBD);
         return total.longValue();
+
     }
 }

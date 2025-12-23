@@ -13,10 +13,11 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
 
     // Tìm ca theo tên duy nhất
     Optional<Shift> findByName(String name);
+
     List<Shift> findByIsActiveTrueAndNameContainingIgnoreCase(String name);
-    
+
     // Lấy tất cả ca đang active
     List<Shift> findByIsActiveTrue();
 
-    List<Shift> findAll(); 
+    List<Shift> findAll();
 }
