@@ -40,23 +40,6 @@ public class EmployeeController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // @PostMapping
-    // @ApiMessage("Tạo mới nhân viên")
-    // public ResponseEntity<ResEmployeeInfo> createEmployee(@RequestBody Employee
-    // employee) {
-    // System.out.println(">>>EMPLOYEE MODULE: Creating employee: " +
-    // employee.getEmail());
-    // Employee createdEmployee = employeeService.createEmployee(employee);
-    // System.out.println(">>>EMPLOYEE MODULE: Created employee with ID: " +
-    // createdEmployee.getId());
-    // System.out.println(">>>EMPLOYEE MODULE: Created employee with fullname: " +
-    // createdEmployee.getFullname());
-    // System.out.println(">>>EMPLOYEE MODULE: Created employee with email: " +
-    // createdEmployee.getEmail());
-    // return ResponseEntity.status(HttpStatus.CREATED).body(new
-    // ResEmployeeInfo(createdEmployee));
-    // }
-
     @PostMapping
     @ApiMessage("Tạo mới nhân viên")
     public ResponseEntity<ResEmployeeInfo> createEmployeeWithDTO(@RequestBody ReqCreateEmpDTO employee) {
@@ -68,9 +51,9 @@ public class EmployeeController {
         return ResponseEntity.status(HttpStatus.CREATED).body(new ResEmployeeInfo(createdEmployee));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{id}/basic-info")
     public ResponseEntity<Employee> updateEmployee(@PathVariable Long id, @RequestBody Employee employee) {
-        return ResponseEntity.ok(employeeService.updateEmployee(id, employee));
+        return ResponseEntity.ok(employeeService.updateEmployeeBasicInfo(id, employee));
     }
 
     @DeleteMapping("/{id}")

@@ -2,6 +2,7 @@ package com.se347.nhom4.HRApplication.domain.responseDTO;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -31,7 +32,7 @@ public class ResEmployeeInfo {
     String email;
     String phone;
 
-    Instant hiredDate;
+    LocalDate hiredDate;
     StatusEnum status;
 
     // // Role info
@@ -136,8 +137,8 @@ public class ResEmployeeInfo {
     @NoArgsConstructor
     public static class SalaryTypeInfo {
         private SalaryTypeEnum salaryType;
-        private Instant effectiveFrom;
-        private Instant effectiveTo;
+        private LocalDate effectiveFrom;
+        private LocalDate effectiveTo;
         private String note;
     }
 
@@ -164,7 +165,7 @@ public class ResEmployeeInfo {
         private Long baseSalary;
         private Long allowance;
         private BigDecimal performanceMultiplier;
-        private Instant effectiveFrom;
-        private Instant effectiveTo;
+        private LocalDate effectiveFrom;
+        private LocalDate effectiveTo;
     }
 }

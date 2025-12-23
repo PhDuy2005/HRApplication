@@ -1,6 +1,7 @@
 package com.se347.nhom4.HRApplication.domain.table;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,7 +44,7 @@ public class Employee {
     String password; // phải hash trước khi lưu
     String phone;
 
-    Instant hiredDate = Instant.now();
+    LocalDate hiredDate = LocalDate.now();
     StatusEnum status = StatusEnum.ACTIVE;
 
     @Column(columnDefinition = "MEDIUMTEXT")
@@ -75,6 +76,7 @@ public class Employee {
      */
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL)
     private List<ShiftRate> shiftRates = new ArrayList<>();
+
     /**
      * Danh sách OT rates của nhân viên.
      * Quan hệ 1-n: 1 Employee có nhiều ShiftOtRate.

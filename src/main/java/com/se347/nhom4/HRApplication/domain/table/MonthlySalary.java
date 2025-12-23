@@ -82,14 +82,14 @@ public class MonthlySalary {
      * Thường là ngày tăng lương hoặc ngày ký hợp đồng.
      */
     @Column(name = "effective_from", nullable = false)
-    private Instant effectiveFrom;
+    private LocalDate effectiveFrom;
 
     /**
      * Ngày kết thúc áp dụng mức lương này.
      * NULL = đang áp dụng hiện tại
      */
     @Column(name = "effective_to")
-    private Instant effectiveTo;
+    private LocalDate effectiveTo;
 
     /**
      * Hệ số điều chỉnh lương dựa trên performance.
@@ -136,7 +136,7 @@ public class MonthlySalary {
     public MonthlySalary(ReqCreateEmpDTO.CreateEmpMonthlySalary dto) {
         this.baseSalary = dto.getBaseSalary();
         this.allowance = dto.getAllowance();
-        this.effectiveFrom = dto.getEffectiveFrom() != null ? dto.getEffectiveFrom() : Instant.now();
+        this.effectiveFrom = dto.getEffectiveFrom() != null ? dto.getEffectiveFrom() : LocalDate.now();
         this.effectiveTo = dto.getEffectiveTo();
         this.performanceMultiplier = dto.getPerformanceMultiplier();
         this.note = dto.getNote();
@@ -189,6 +189,6 @@ public class MonthlySalary {
      * @return true nếu effectiveTo == null hoặc > now
      */
     public boolean isCurrentlyActive() {
-        return isActive && (effectiveTo == null || effectiveTo.isAfter(Instant.now()));
+        return isActive && (effectiveTo == null || effectiveTo.isAfter(LocalDate.now()));
     }
 }

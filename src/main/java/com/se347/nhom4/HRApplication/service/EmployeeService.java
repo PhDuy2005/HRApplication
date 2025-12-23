@@ -1,6 +1,7 @@
 package com.se347.nhom4.HRApplication.service;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -73,7 +74,7 @@ public class EmployeeService {
      * @return The updated employee.
      * @throws NoSuchElementException if employee not found.
      */
-    public Employee updateEmployee(Long id, Employee employee) {
+    public Employee updateEmployeeBasicInfo(Long id, Employee employee) {
         Employee curEmployee = employeeRepository.findById(id).orElseThrow();
         if (curEmployee == null) {
             throw new IllegalArgumentException("Employee not found with id " + id);
@@ -85,6 +86,12 @@ public class EmployeeService {
             curEmployee.setEmail(employee.getEmail());
         if (employee.getPhone() != null)
             curEmployee.setPhone(employee.getPhone());
+
+        if (employee.getHiredDate() != null)
+            curEmployee.setHiredDate(employee.getHiredDate());
+
+        if (employee.getStatus() != null)
+            curEmployee.setStatus(employee.getStatus());
         return employeeRepository.save(curEmployee);
     }
 
@@ -168,7 +175,6 @@ public class EmployeeService {
             System.err.println(">>>EMPLOYEE MODULE: Phone number " + phone
                     + " already exists. An IllegalArgumentException will be thrown.");
             throw new IllegalArgumentException("Phone number " + phone + " already exists");
-            // return false; // Phone already exists
         }
 
         if (this.employeeRepository.existsByEmail(email)) {
@@ -193,7 +199,7 @@ public class EmployeeService {
         newEmp.setEmail(dto.getEmail());
         newEmp.setPassword(dto.getPassword());
         newEmp.setPhone(dto.getPhone());
-        newEmp.setHiredDate(dto.getHiredDate() != null ? dto.getHiredDate() : Instant.now());
+        newEmp.setHiredDate(dto.getHiredDate() != null ? dto.getHiredDate() : LocalDate.now());
         newEmp.setStatus(dto.getStatus() != null ? dto.getStatus() : StatusEnum.ACTIVE);
 
         newEmp.setEmployeeSalaryTypes(new ArrayList<>());

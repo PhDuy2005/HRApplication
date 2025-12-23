@@ -2,6 +2,7 @@ package com.se347.nhom4.HRApplication.domain.requestDTO;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 import com.se347.nhom4.HRApplication.util.enums.DayTypeEnum;
@@ -23,7 +24,7 @@ public class ReqCreateEmpDTO {
     String password; // raw pwd
     String phone;
 
-    Instant hiredDate;
+    LocalDate hiredDate;
     StatusEnum status;
 
     CreateEmpSalaryType empSalaryType;
@@ -48,8 +49,8 @@ public class ReqCreateEmpDTO {
     @Builder
     public static class CreateEmpSalaryType {
         private SalaryTypeEnum salaryType;
-        private Instant effectiveFrom;
-        private Instant effectiveTo;
+        private LocalDate effectiveFrom;
+        private LocalDate effectiveTo;
         private String note;
     }
 
@@ -86,8 +87,8 @@ public class ReqCreateEmpDTO {
         private Long baseSalary;
         private Long allowance;
         private BigDecimal performanceMultiplier;
-        private Instant effectiveFrom;
-        private Instant effectiveTo;
+        private LocalDate effectiveFrom;
+        private LocalDate effectiveTo;
         private String note;
     }
 }
