@@ -16,7 +16,6 @@ public class WorkSite {
   @Id @GeneratedValue(strategy=GenerationType.IDENTITY)
   Long id;
 
-  String code;
   String name;  //tên địa điểm làm việc
   String address;
 

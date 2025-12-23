@@ -9,10 +9,13 @@ import org.hibernate.boot.registry.classloading.spi.ClassLoaderService.Work;
 import org.springframework.stereotype.Service;
 
 import com.se347.nhom4.HRApplication.domain.table.WorkSchedule;
+import com.se347.nhom4.HRApplication.domain.table.WorkSite;
 import com.se347.nhom4.HRApplication.repository.EmployeeRepository;
 import com.se347.nhom4.HRApplication.repository.ShiftRepository;
 import com.se347.nhom4.HRApplication.repository.WorkScheduleRepository;
+import com.se347.nhom4.HRApplication.repository.WorkSiteRepository;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -22,6 +25,33 @@ public class WorkScheduleService {
     private final WorkScheduleRepository workScheduleRepository;
     private final EmployeeRepository employeeRepository;
     private final ShiftRepository shiftRepository;
+    private final WorkSiteRepository workSiteRepository;
+
+    //gán WorkSite cho WorkSchedule (phục vụ GPS chấm công)
+    @Transactional
+    public WorkSchedule assignWorkSite(Long workScheduleId, Long workSiteId) {
+        WorkSchedule ws = workScheduleRepository.findById(workScheduleId)
+                .orElseThrow(() -> new IllegalArgumentException("WorkSchedule not found with id: " + workScheduleId));
+
+        WorkSite site = workSiteRepository.findById(workSiteId)
+                .orElseThrow(() -> new IllegalArgumentException("WorkSite not found with id: " + workSiteId));
+
+        if (site.getActive() != null && !site.getActive()) {
+            throw new IllegalArgumentException("WorkSite đang inactive, không thể gán");
+        }
+
+        ws.setWorkSite(site);
+        return workScheduleRepository.save(ws);
+    }
+    // bỏ WorkSite khỏi WorkSchedule
+    @Transactional
+    public WorkSchedule removeWorkSite(Long workScheduleId) {
+        WorkSchedule ws = workScheduleRepository.findById(workScheduleId)
+                .orElseThrow(() -> new IllegalArgumentException("WorkSchedule not found with id: " + workScheduleId));
+
+        ws.setWorkSite(null);
+        return workScheduleRepository.save(ws);
+    }
 
     /**
      * Get all work schedules.
@@ -85,6 +115,15 @@ public class WorkScheduleService {
      * Create new work schedule.
      */
     public WorkSchedule createWorkSchedule(WorkSchedule workSchedule) {
+        //kiểm tra worksite id
+        if (workSchedule.getWorkSite() == null || workSchedule.getWorkSite().getId() == null)
+            throw new IllegalArgumentException("workSite.id is required");
+        var site = workSiteRepository.findById(workSchedule.getWorkSite().getId())
+                .orElseThrow(() -> new IllegalArgumentException("WorkSite not found: " + workSchedule.getWorkSite().getId()));
+        if (site.getActive() != null && !site.getActive())
+            throw new IllegalArgumentException("WorkSite inactive");
+        workSchedule.setWorkSite(site);
+
         return workScheduleRepository.save(workSchedule);
     }
 
@@ -92,6 +131,19 @@ public class WorkScheduleService {
      * Update work schedule.
      */
     public WorkSchedule updateWorkSchedule(Long id, WorkSchedule workSchedule) {
+        //kiểm tra workSchedule
+        WorkSchedule existing = workScheduleRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("WorkSchedule not found: " + id));
+
+        //kiểm tra worksite id
+        if (workSchedule.getWorkSite() != null && workSchedule.getWorkSite().getId() != null) {
+            var site = workSiteRepository.findById(workSchedule.getWorkSite().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("WorkSite not found: " + workSchedule.getWorkSite().getId()));
+            if (site.getActive() != null && !site.getActive())
+                throw new IllegalArgumentException("WorkSite inactive");
+            existing.setWorkSite(site);
+        }
+
         return workScheduleRepository.save(workSchedule);
     }
 
