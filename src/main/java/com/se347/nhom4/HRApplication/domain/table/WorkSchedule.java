@@ -17,13 +17,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(
-    name = "work_schedules",
-    uniqueConstraints = {
+@Table(name = "work_schedules", uniqueConstraints = {
         // tránh trùng lịch: 1 nhân viên cùng 1 ca trong cùng 1 ngày
-        @UniqueConstraint(name = "work_schedules_shift_date", columnNames = {"employee_id", "shift_id", "work_date"})
-    }
-)
+        @UniqueConstraint(name = "work_schedules_shift_date", columnNames = { "employee_id", "shift_id", "work_date" })
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -46,8 +43,12 @@ public class WorkSchedule {
 
     /**
      * "Ngày làm" theo schema là DATE, nhưng bạn yêu cầu chuyển sang Instant.
-     * Quy ước: lưu Instant đại diện cho đầu ngày (00:00) theo timezone bạn chọn trong service.
+     * Quy ước: lưu Instant đại diện cho đầu ngày (00:00) theo timezone bạn chọn
+     * trong service.
      */
     @jakarta.persistence.Column(name = "work_date", nullable = false)
     private LocalDate workDate;
+
+    @ManyToOne
+    private WorkSite workSite;
 }
