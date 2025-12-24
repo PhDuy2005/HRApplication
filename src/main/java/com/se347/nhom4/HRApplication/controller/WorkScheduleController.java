@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.se347.nhom4.HRApplication.domain.responseDTO.ResEmpListWorkSchedule;
+import com.se347.nhom4.HRApplication.domain.responseDTO.ResShiftListWorkSchedule;
 import com.se347.nhom4.HRApplication.domain.responseDTO.ResWorkSchedule;
 import com.se347.nhom4.HRApplication.domain.table.WorkSchedule;
 import com.se347.nhom4.HRApplication.service.DayTypeService;
@@ -67,6 +68,20 @@ public class WorkScheduleController {
                 .map(ws -> new ResWorkSchedule(ws, dayTypeService))
                 .toList();
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/shift/{shiftId}/date-range")
+    @ApiMessage("Lấy lịch làm việc theo ca và khoảng thời gian")
+    public ResponseEntity<ResShiftListWorkSchedule> getWorkSchedulesByShiftIdAndDateRange(
+            @PathVariable Long shiftId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        List<ResWorkSchedule> response = workScheduleService
+                .findByShiftIdAndWorkDateBetween(shiftId, startDate, endDate).stream()
+                .map(ws -> new ResWorkSchedule(ws, dayTypeService))
+                .toList();
+        ResShiftListWorkSchedule shiftListWorkSchedule = new ResShiftListWorkSchedule(response);
+        return ResponseEntity.ok(shiftListWorkSchedule);
     }
 
     @GetMapping("/date/{workDate}")

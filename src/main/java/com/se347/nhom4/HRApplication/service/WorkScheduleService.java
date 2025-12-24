@@ -82,6 +82,21 @@ public class WorkScheduleService {
     }
 
     /**
+     * Get active work schedules by shift ID and date range.
+     */
+    public List<WorkSchedule> findByShiftIdAndWorkDateBetween(Long shiftId, LocalDate startDate, LocalDate endDate) {
+        List<WorkSchedule> workSchedules = workScheduleRepository.findByShiftIdAndWorkDateBetween(shiftId, startDate,
+                endDate);
+        List<WorkSchedule> activeWorkSchedules = new ArrayList<>();
+        for (WorkSchedule ws : workSchedules) {
+            if (ws.getShift().getIsActive() == true) {
+                activeWorkSchedules.add(ws);
+            }
+        }
+        return activeWorkSchedules;
+    }
+
+    /**
      * Create new work schedule.
      */
     public WorkSchedule createWorkSchedule(WorkSchedule workSchedule) {
