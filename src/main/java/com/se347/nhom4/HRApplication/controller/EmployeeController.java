@@ -29,14 +29,17 @@ public class EmployeeController {
     private final EmployeeService employeeService;
 
     @GetMapping
-    public ResponseEntity<List<Employee>> getAllEmployees() {
-        return ResponseEntity.ok(employeeService.findAll());
+    public ResponseEntity<List<ResEmployeeInfo>> getAllEmployees() {
+        return ResponseEntity.ok(
+                employeeService.findAll().stream()
+                        .map(ResEmployeeInfo::new)
+                        .toList());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Employee> getEmployeeById(@PathVariable Long id) {
+    public ResponseEntity<ResEmployeeInfo> getEmployeeById(@PathVariable("id") Long id) {
         return employeeService.findById(id)
-                .map(ResponseEntity::ok)
+                .map(e -> ResponseEntity.ok(new ResEmployeeInfo(e)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -52,12 +55,12 @@ public class EmployeeController {
     }
 
     @PutMapping("/{id}/basic-info")
-    public ResponseEntity<Employee> updateEmployee(@PathVariable Long id, @RequestBody Employee employee) {
+    public ResponseEntity<Employee> updateEmployee(@PathVariable("id") Long id, @RequestBody Employee employee) {
         return ResponseEntity.ok(employeeService.updateEmployeeBasicInfo(id, employee));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteEmployee(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteEmployee(@PathVariable("id") Long id) {
         employeeService.deleteById(id);
         return ResponseEntity.noContent().build();
     }
