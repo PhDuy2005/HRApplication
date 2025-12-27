@@ -33,6 +33,15 @@ public class EmployeeService {
     private final PasswordEncoder passwordEncoder;
     private final ShiftRepository shiftRepository;
 
+    private void checkUniquePhoneAndEmailForUpdate(Long id, String phone, String email) {
+        if (phone != null && this.employeeRepository.existsByPhoneAndIdNot(phone, id)) {
+            throw new IllegalArgumentException("Phone number " + phone + " already exists");
+        }
+        if (email != null && this.employeeRepository.existsByEmailAndIdNot(email, id)) {
+            throw new IllegalArgumentException("Email " + email + " already exists");
+        }
+    }
+
     /**
      * Get all employees from database.
      * 
@@ -59,10 +68,13 @@ public class EmployeeService {
      * @return The created employee.
      */
     public Employee createEmployee(ReqCreateEmpDTO dto) {
-        dto.setPassword(passwordEncoder.encode(dto.getPassword())); // hash pwd trước khi mapping sang Entity
+        if (dto.getPassword() == null || dto.getPassword().isBlank()) {
+            // set default:
+            dto.setPassword(dto.getPhone());
+        }
+        dto.setPassword(passwordEncoder.encode(dto.getPassword()));
         this.checkUniquePhoneAndEmail(dto.getPhone(), dto.getEmail());
         Employee employee = this.toEmployeeEntity(dto);
-
         return employeeRepository.save(employee);
     }
 
@@ -75,23 +87,22 @@ public class EmployeeService {
      * @throws NoSuchElementException if employee not found.
      */
     public Employee updateEmployeeBasicInfo(Long id, Employee employee) {
-        Employee curEmployee = employeeRepository.findById(id).orElseThrow();
-        if (curEmployee == null) {
-            throw new IllegalArgumentException("Employee not found with id " + id);
-        }
-        this.checkUniquePhoneAndEmail(employee.getPhone(), employee.getEmail());
+        Employee curEmployee = employeeRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Employee not found with id " + id));
+
+        checkUniquePhoneAndEmailForUpdate(id, employee.getPhone(), employee.getEmail());
+
         if (employee.getFullname() != null)
             curEmployee.setFullname(employee.getFullname());
         if (employee.getEmail() != null)
             curEmployee.setEmail(employee.getEmail());
         if (employee.getPhone() != null)
             curEmployee.setPhone(employee.getPhone());
-
         if (employee.getHiredDate() != null)
             curEmployee.setHiredDate(employee.getHiredDate());
-
         if (employee.getStatus() != null)
             curEmployee.setStatus(employee.getStatus());
+
         return employeeRepository.save(curEmployee);
     }
 
@@ -202,47 +213,60 @@ public class EmployeeService {
         newEmp.setHiredDate(dto.getHiredDate() != null ? dto.getHiredDate() : LocalDate.now());
         newEmp.setStatus(dto.getStatus() != null ? dto.getStatus() : StatusEnum.ACTIVE);
 
-        newEmp.setEmployeeSalaryTypes(new ArrayList<>());
-        EmployeeSalaryType empSalaryType = new EmployeeSalaryType(dto.getEmpSalaryType());
-        System.out.println(">>>CREATE EMPLOYEE MODULE: Type of salary: " + empSalaryType.getSalaryType());
-        empSalaryType.setEmployee(newEmp);
-        newEmp.getEmployeeSalaryTypes().add(empSalaryType);
-        if (empSalaryType.getSalaryType() == SalaryTypeEnum.SHIFT) {
-            // newEmp.setShiftRates(new ArrayList<>());
-            List<ShiftRate> empShiftRates = new ArrayList<>();
-            for (ReqCreateEmpDTO.CreateEmpShiftRate rateDTO : dto.getEmpShiftRates()) {
-                ShiftRate shiftRate;
-                if (rateDTO.getShiftId() == null) {
-                    // Tạo ShiftBaseRate
-                    shiftRate = new ShiftBaseRate();
-                } else {
-                    // Tạo ShiftSpecialRate
-                    ShiftSpecialRate specialRate = new ShiftSpecialRate();
-                    specialRate.setShift(this.shiftRepository.findById(rateDTO.getShiftId()).orElse(null));
-                    specialRate.setPriority(rateDTO.getPriority());
-                    specialRate.setNote(rateDTO.getNote());
-                    shiftRate = specialRate;
-                }
-                shiftRate.setEmployee(newEmp);
-                shiftRate.setDayType(rateDTO.getDayType());
-                shiftRate.setBaseRate(rateDTO.getBaseRate());
-                shiftRate.setRateMultiplier(rateDTO.getRateMultiplier());
-                shiftRate.setEffectiveFrom(
-                        rateDTO.getEffectiveFrom() != null ? rateDTO.getEffectiveFrom() : Instant.now());
-                shiftRate.setEffectiveTo(rateDTO.getEffectiveTo());
-                shiftRate.setIsActive(rateDTO.getIsActive() != null ? rateDTO.getIsActive() : true);
+        // newEmp.setEmployeeSalaryTypes(new ArrayList<>());
+        // EmployeeSalaryType empSalaryType = new
+        // EmployeeSalaryType(dto.getEmpSalaryType());
+        // System.out.println(">>>CREATE EMPLOYEE MODULE: Type of salary: " +
+        // empSalaryType.getSalaryType());
+        // empSalaryType.setEmployee(newEmp);
+        // newEmp.getEmployeeSalaryTypes().add(empSalaryType);
+        // if (empSalaryType.getSalaryType() == SalaryTypeEnum.SHIFT) {
+        // // newEmp.setShiftRates(new ArrayList<>());
+        // List<ShiftRate> empShiftRates = new ArrayList<>();
+        // for (ReqCreateEmpDTO.CreateEmpShiftRate rateDTO : dto.getEmpShiftRates()) {
+        // ShiftRate shiftRate;
+        // if (rateDTO.getShiftId() == null) {
+        // // Tạo ShiftBaseRate
+        // shiftRate = new ShiftBaseRate();
+        // } else {
+        // // Tạo ShiftSpecialRate
+        // ShiftSpecialRate specialRate = new ShiftSpecialRate();
+        // specialRate.setShift(this.shiftRepository.findById(rateDTO.getShiftId()).orElse(null));
+        // specialRate.setPriority(rateDTO.getPriority());
+        // specialRate.setNote(rateDTO.getNote());
+        // shiftRate = specialRate;
+        // }
+        // shiftRate.setEmployee(newEmp);
+        // shiftRate.setDayType(rateDTO.getDayType());
+        // shiftRate.setBaseRate(rateDTO.getBaseRate());
+        // shiftRate.setRateMultiplier(rateDTO.getRateMultiplier());
+        // shiftRate.setEffectiveFrom(
+        // rateDTO.getEffectiveFrom() != null ? rateDTO.getEffectiveFrom() :
+        // Instant.now());
+        // shiftRate.setEffectiveTo(rateDTO.getEffectiveTo());
+        // shiftRate.setIsActive(rateDTO.getIsActive() != null ? rateDTO.getIsActive() :
+        // true);
 
-                empShiftRates.add(shiftRate);
-            }
-            newEmp.setShiftRates(empShiftRates);
-        } else if (empSalaryType.getSalaryType() == SalaryTypeEnum.MONTHLY) {
-            newEmp.setMonthlySalaries(new ArrayList<>());
-            List<MonthlySalary> empMonthlySalaries = new ArrayList<>();
-            MonthlySalary monthlySalary = new MonthlySalary(dto.getEmpMonthlySalary());
-            monthlySalary.setEmployee(newEmp);
-            empMonthlySalaries.add(monthlySalary);
-            newEmp.setMonthlySalaries(empMonthlySalaries);
-        }
+        // empShiftRates.add(shiftRate);
+        // }
+        // newEmp.setShiftRates(empShiftRates);
+        // } else if (empSalaryType.getSalaryType() == SalaryTypeEnum.MONTHLY) {
+        // newEmp.setMonthlySalaries(new ArrayList<>());
+        // List<MonthlySalary> empMonthlySalaries = new ArrayList<>();
+        // MonthlySalary monthlySalary = new MonthlySalary(dto.getEmpMonthlySalary());
+        // monthlySalary.setEmployee(newEmp);
+        // empMonthlySalaries.add(monthlySalary);
+        // newEmp.setMonthlySalaries(empMonthlySalaries);
+        // }
+
+        // để tránh null pointer khi serialize/làm việc sau này (nếu entity có getter
+        // dùng list)
+        newEmp.setEmployeeSalaryTypes(new ArrayList<>());
+        newEmp.setMonthlySalaries(new ArrayList<>());
+        newEmp.setShiftRates(new ArrayList<>());
+        newEmp.setShiftOtRates(new ArrayList<>());
+        newEmp.setEmployeePenalties(new ArrayList<>());
+        newEmp.setAttendancePenalties(new ArrayList<>());
         return newEmp;
     }
 }
