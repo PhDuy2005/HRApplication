@@ -27,13 +27,13 @@ public class ShiftController {
 
     @PatchMapping("/{id}")
     public ResponseEntity<ResShiftDTO> patchShift(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestBody ReqShiftDTO dto) {
         return ResponseEntity.ok(shiftService.updateShift(id, dto));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deactivateShift(@PathVariable Long id) {
+    public ResponseEntity<Void> deactivateShift(@PathVariable("id") Long id) {
         shiftService.deactivateShift(id);
         return ResponseEntity.noContent().build();
     }
@@ -49,7 +49,7 @@ public class ShiftController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ResShiftDTO> getShiftById(@PathVariable Long id) {
+    public ResponseEntity<ResShiftDTO> getShiftById(@PathVariable("id") Long id) {
         return ResponseEntity.ok(shiftService.getShiftById(id));
     }
 

@@ -144,7 +144,7 @@ public class WorkScheduleService {
             existing.setWorkSite(site);
         }
 
-        return workScheduleRepository.save(workSchedule);
+        return workScheduleRepository.save(existing);
     }
 
     /**
