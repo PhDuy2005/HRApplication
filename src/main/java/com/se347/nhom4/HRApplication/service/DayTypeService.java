@@ -50,6 +50,7 @@ public class DayTypeService {
      * @return DayTypeEnum (HOLIDAY, SUNDAY, SATURDAY, WEEKDAY)
      */
     public DayTypeEnum getDayType(LocalDate date) {
+        System.out.println(">>>DAY-TYPE MODULE: Determining day type for date: " + date + " with LocalDate method");
         if (date == null) {
             throw new IllegalArgumentException("Date cannot be null");
         }
@@ -77,6 +78,7 @@ public class DayTypeService {
      * @return DayTypeEnum (HOLIDAY, SUNDAY, SATURDAY, WEEKDAY)
      */
     public DayTypeEnum getDayType(Instant instant) {
+        System.out.println(">>>DAY-TYPE MODULE: Determining day type for instant: " + instant + " with Instant method");
         if (instant == null) {
             throw new IllegalArgumentException("Instant cannot be null");
         }
