@@ -60,4 +60,45 @@ public class Attendance {
 
     @Column(name = "late_time")
     private Integer lateTime;
+
+    // ==========================
+    // GPS - vị trí lúc check-out
+    // ==========================
+
+    // Vĩ độ tại thời điểm check-in
+    @Column(name = "check_in_lat")
+    private Double checkInLat;
+
+    // Kinh độ tại thời điểm check-in
+    @Column(name = "check_in_lng")
+    private Double checkInLng;
+
+    // Độ chính xác GPS lúc check-in (mét) - càng nhỏ càng chính xác
+    @Column(name = "check_in_accuracy_meters")
+    private Integer checkInAccuracyMeters;
+
+    // Khoảng cách từ vị trí check-in đến điểm làm việc (mét) - server tính để audit
+    @Column(name = "check_in_distance_meters")
+    private Integer checkInDistanceMeters;
+
+    // ==========================
+    // GPS - vị trí lúc check-out
+    // ==========================
+
+    // Vĩ độ tại thời điểm check-out
+    @Column(name = "check_out_lat")
+    private Double checkOutLat;
+
+    // Kinh độ tại thời điểm check-out
+    @Column(name = "check_out_lng")
+    private Double checkOutLng;
+
+    // Độ chính xác GPS lúc check-out (mét)
+    @Column(name = "check_out_accuracy_meters")
+    private Integer checkOutAccuracyMeters;
+
+    // Khoảng cách từ vị trí check-out đến điểm làm việc (mét)
+    @Column(name = "check_out_distance_meters")
+    private Integer checkOutDistanceMeters;
+
 }

@@ -2,6 +2,7 @@ package com.se347.nhom4.HRApplication.domain.responseDTO;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -31,20 +32,20 @@ public class ResEmployeeInfo {
     String email;
     String phone;
 
-    Instant hiredDate;
+    LocalDate hiredDate;
     StatusEnum status;
 
     // // Role info
     // RoleInfo role;
 
-    // Salary type hiện tại
-    SalaryTypeInfo currentSalaryType;
+    // // Salary type hiện tại
+    // SalaryTypeInfo currentSalaryType;
 
-    // Shift rates hiện đang active
-    List<ShiftRateInfo> activeShiftRates;
+    // // Shift rates hiện đang active
+    // List<ShiftRateInfo> activeShiftRates;
 
-    // Monthly salary hiện đang active
-    MonthlySalaryInfo currentMonthlySalary;
+    // // Monthly salary hiện đang active
+    // MonthlySalaryInfo currentMonthlySalary;
 
     // Audit fields
     Instant createdAt;
@@ -67,54 +68,54 @@ public class ResEmployeeInfo {
         // }
 
         // Current salary type
-        EmployeeSalaryType currentSalaryType = employee.getCurrentSalaryType();
-        if (currentSalaryType != null) {
-            this.currentSalaryType = new SalaryTypeInfo(
-                    currentSalaryType.getSalaryType(),
-                    currentSalaryType.getEffectiveFrom(),
-                    currentSalaryType.getEffectiveTo(),
-                    currentSalaryType.getNote());
-        }
+        // EmployeeSalaryType currentSalaryType = employee.getCurrentSalaryType();
+        // if (currentSalaryType != null) {
+        //     this.currentSalaryType = new SalaryTypeInfo(
+        //             currentSalaryType.getSalaryType(),
+        //             currentSalaryType.getEffectiveFrom(),
+        //             currentSalaryType.getEffectiveTo(),
+        //             currentSalaryType.getNote());
+        // }
 
-        // Active shift rates
-        this.activeShiftRates = employee.getActiveShiftRates().stream()
-                .map(rate -> {
-                    if (rate instanceof ShiftBaseRate) {
-                        return new ShiftRateInfo(
-                                rate.getId(),
-                                "BASE",
-                                rate.getDayType(),
-                                rate.getBaseRate(),
-                                rate.getRateMultiplier(),
-                                null,
-                                null,
-                                null);
-                    } else if (rate instanceof ShiftSpecialRate special) {
-                        return new ShiftRateInfo(
-                                rate.getId(),
-                                "SPECIAL",
-                                rate.getDayType(),
-                                rate.getBaseRate(),
-                                rate.getRateMultiplier(),
-                                special.getShift() != null ? special.getShift().getId() : null,
-                                special.getPriority(),
-                                special.getNote());
-                    }
-                    return null;
-                })
-                .filter(info -> info != null)
-                .collect(Collectors.toList());
+        // // Active shift rates
+        // this.activeShiftRates = employee.getActiveShiftRates().stream()
+        //         .map(rate -> {
+        //             if (rate instanceof ShiftBaseRate) {
+        //                 return new ShiftRateInfo(
+        //                         rate.getId(),
+        //                         "BASE",
+        //                         rate.getDayType(),
+        //                         rate.getBaseRate(),
+        //                         rate.getRateMultiplier(),
+        //                         null,
+        //                         null,
+        //                         null);
+        //             } else if (rate instanceof ShiftSpecialRate special) {
+        //                 return new ShiftRateInfo(
+        //                         rate.getId(),
+        //                         "SPECIAL",
+        //                         rate.getDayType(),
+        //                         rate.getBaseRate(),
+        //                         rate.getRateMultiplier(),
+        //                         special.getShift() != null ? special.getShift().getId() : null,
+        //                         special.getPriority(),
+        //                         special.getNote());
+        //             }
+        //             return null;
+        //         })
+        //         .filter(info -> info != null)
+        //         .collect(Collectors.toList());
 
-        // Current monthly salary
-        MonthlySalary currentMonthlySalary = employee.getCurrentMonthlySalary();
-        if (currentMonthlySalary != null) {
-            this.currentMonthlySalary = new MonthlySalaryInfo(
-                    currentMonthlySalary.getBaseSalary(),
-                    currentMonthlySalary.getAllowance(),
-                    currentMonthlySalary.getPerformanceMultiplier(),
-                    currentMonthlySalary.getEffectiveFrom(),
-                    currentMonthlySalary.getEffectiveTo());
-        }
+        // // Current monthly salary
+        // MonthlySalary currentMonthlySalary = employee.getCurrentMonthlySalary();
+        // if (currentMonthlySalary != null) {
+        //     this.currentMonthlySalary = new MonthlySalaryInfo(
+        //             currentMonthlySalary.getBaseSalary(),
+        //             currentMonthlySalary.getAllowance(),
+        //             currentMonthlySalary.getPerformanceMultiplier(),
+        //             currentMonthlySalary.getEffectiveFrom(),
+        //             currentMonthlySalary.getEffectiveTo());
+        // }
 
         // Audit
         this.createdAt = employee.getCreatedAt();
@@ -136,8 +137,8 @@ public class ResEmployeeInfo {
     @NoArgsConstructor
     public static class SalaryTypeInfo {
         private SalaryTypeEnum salaryType;
-        private Instant effectiveFrom;
-        private Instant effectiveTo;
+        private LocalDate effectiveFrom;
+        private LocalDate effectiveTo;
         private String note;
     }
 
@@ -164,7 +165,7 @@ public class ResEmployeeInfo {
         private Long baseSalary;
         private Long allowance;
         private BigDecimal performanceMultiplier;
-        private Instant effectiveFrom;
-        private Instant effectiveTo;
+        private LocalDate effectiveFrom;
+        private LocalDate effectiveTo;
     }
 }

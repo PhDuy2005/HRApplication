@@ -96,7 +96,7 @@ public class Shift {
     /**
      * Mã màu để hiển thị trên UI (hex color).
      * Ví dụ: "#FF5733" (màu cam)
-     * Kduii: wtf có cần ko nhỉ 
+     * Kduii: wtf có cần ko nhỉ
      * Uyen: sài thử đi
      */
     @Column(name = "color_code", length = 7)
@@ -134,6 +134,12 @@ public class Shift {
     protected void onUpdate() {
         updatedAt = Instant.now();
         updatedBy = SecurityUtil.getCurrentUserLogin().orElse("system");
+        if (startTime != null && endTime != null) {
+
+            standardHours = endTime.isAfter(startTime)
+                    ? (double) java.time.Duration.between(startTime, endTime).toHours()
+                    : (double) java.time.Duration.between(startTime, endTime.plusHours(24)).toHours();
+        }
     }
 
 }

@@ -44,7 +44,7 @@ public class EmployeePenalty {
 
     @NotNull
     @Column(name = "is_active", nullable = false)
-    private Boolean isActive;
+    private Boolean active;
 
     // Audit fields
     @Column(name = "created_at", nullable = false, updatable = false)

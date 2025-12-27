@@ -29,33 +29,19 @@ public class EmployeeController {
     private final EmployeeService employeeService;
 
     @GetMapping
-    public ResponseEntity<List<Employee>> getAllEmployees() {
-        return ResponseEntity.ok(employeeService.findAll());
+    public ResponseEntity<List<ResEmployeeInfo>> getAllEmployees() {
+        return ResponseEntity.ok(
+                employeeService.findAll().stream()
+                        .map(ResEmployeeInfo::new)
+                        .toList());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Employee> getEmployeeById(@PathVariable Long id) {
+    public ResponseEntity<ResEmployeeInfo> getEmployeeById(@PathVariable("id") Long id) {
         return employeeService.findById(id)
-                .map(ResponseEntity::ok)
+                .map(e -> ResponseEntity.ok(new ResEmployeeInfo(e)))
                 .orElse(ResponseEntity.notFound().build());
     }
-
-    // @PostMapping
-    // @ApiMessage("Tạo mới nhân viên")
-    // public ResponseEntity<ResEmployeeInfo> createEmployee(@RequestBody Employee
-    // employee) {
-    // System.out.println(">>>EMPLOYEE MODULE: Creating employee: " +
-    // employee.getEmail());
-    // Employee createdEmployee = employeeService.createEmployee(employee);
-    // System.out.println(">>>EMPLOYEE MODULE: Created employee with ID: " +
-    // createdEmployee.getId());
-    // System.out.println(">>>EMPLOYEE MODULE: Created employee with fullname: " +
-    // createdEmployee.getFullname());
-    // System.out.println(">>>EMPLOYEE MODULE: Created employee with email: " +
-    // createdEmployee.getEmail());
-    // return ResponseEntity.status(HttpStatus.CREATED).body(new
-    // ResEmployeeInfo(createdEmployee));
-    // }
 
     @PostMapping
     @ApiMessage("Tạo mới nhân viên")
@@ -68,13 +54,13 @@ public class EmployeeController {
         return ResponseEntity.status(HttpStatus.CREATED).body(new ResEmployeeInfo(createdEmployee));
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<Employee> updateEmployee(@PathVariable Long id, @RequestBody Employee employee) {
-        return ResponseEntity.ok(employeeService.updateEmployee(id, employee));
+    @PutMapping("/{id}/basic-info")
+    public ResponseEntity<Employee> updateEmployee(@PathVariable("id") Long id, @RequestBody Employee employee) {
+        return ResponseEntity.ok(employeeService.updateEmployeeBasicInfo(id, employee));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteEmployee(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteEmployee(@PathVariable("id") Long id) {
         employeeService.deleteById(id);
         return ResponseEntity.noContent().build();
     }

@@ -66,14 +66,14 @@ public class EmployeeSalaryType {
      * Ngày bắt đầu áp dụng loại lương này.
      */
     @Column(name = "effective_from", nullable = false)
-    private Instant effectiveFrom;
+    private LocalDate effectiveFrom;
 
     /**
      * Ngày kết thúc áp dụng.
      * NULL = áp dụng vô thời hạn (current active)
      */
     @Column(name = "effective_to")
-    private Instant effectiveTo;
+    private LocalDate effectiveTo;
 
     /**
      * Ghi chú về việc thay đổi loại lương.
@@ -100,7 +100,7 @@ public class EmployeeSalaryType {
 
     public EmployeeSalaryType(ReqCreateEmpDTO.CreateEmpSalaryType dto) {
         this.salaryType = dto.getSalaryType();
-        this.effectiveFrom = dto.getEffectiveFrom() != null ? dto.getEffectiveFrom() : Instant.now();
+        this.effectiveFrom = dto.getEffectiveFrom() != null ? dto.getEffectiveFrom() : LocalDate.now();
         this.effectiveTo = dto.getEffectiveTo();
         this.note = dto.getNote();
     }
@@ -126,6 +126,6 @@ public class EmployeeSalaryType {
      * @return true nếu effectiveTo == null hoặc > now
      */
     public boolean isActive() {
-        return effectiveTo == null || effectiveTo.isAfter(Instant.now());
+        return effectiveTo == null || effectiveTo.isAfter(LocalDate.now());
     }
 }
