@@ -44,11 +44,11 @@ public class OpenAPIConfig {
 
     private Info createApiInfo() {
         return new Info()
-                .title("Job Hunter API")
+                // .title("Job Hunter API")
                 .version("1.0")
-                .contact(createContact())
-                .description("This API exposes all endpoints (job hunter)")
-                .termsOfService("https://hoidanit.vn/donate")
+                // .contact(createContact())
+                .description("This API exposes all endpoints")
+                // .termsOfService("https://hoidanit.vn/donate")
                 .license(createLicense());
     }
 

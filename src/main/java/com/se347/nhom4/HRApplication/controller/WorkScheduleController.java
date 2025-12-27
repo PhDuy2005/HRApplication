@@ -73,9 +73,9 @@ public class WorkScheduleController {
     @GetMapping("/shift/{shiftId}/date-range")
     @ApiMessage("Lấy lịch làm việc theo ca và khoảng thời gian")
     public ResponseEntity<ResShiftListWorkSchedule> getWorkSchedulesByShiftIdAndDateRange(
-            @PathVariable Long shiftId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+            @PathVariable("shiftId") Long shiftId,
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         List<ResWorkSchedule> response = workScheduleService
                 .findByShiftIdAndWorkDateBetween(shiftId, startDate, endDate).stream()
                 .map(ws -> new ResWorkSchedule(ws, dayTypeService))
