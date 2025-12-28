@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.se347.nhom4.HRApplication.domain.responseDTO.ResEmpListWorkSchedule;
+import com.se347.nhom4.HRApplication.domain.responseDTO.ResShiftListWorkSchedule;
 import com.se347.nhom4.HRApplication.domain.responseDTO.ResWorkSchedule;
 import com.se347.nhom4.HRApplication.domain.table.WorkSchedule;
 import com.se347.nhom4.HRApplication.service.DayTypeService;
@@ -31,112 +32,196 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class WorkScheduleController {
 
-    private final WorkScheduleService workScheduleService;
-    private final DayTypeService dayTypeService;
+        private final WorkScheduleService workScheduleService;
+        private final DayTypeService dayTypeService;
 
-    @GetMapping
-    @ApiMessage("Lấy danh sách tất cả lịch làm việc")
-    public ResponseEntity<List<ResWorkSchedule>> getAllWorkSchedules() {
-        List<ResWorkSchedule> response = workScheduleService.findAll().stream()
-                .map(ws -> new ResWorkSchedule(ws, dayTypeService))
-                .toList();
-        return ResponseEntity.ok(response);
-    }
+        @GetMapping
+        @ApiMessage("Lấy danh sách tất cả lịch làm việc")
+        public ResponseEntity<List<ResWorkSchedule>> getAllWorkSchedules() {
+                System.out.println(">>>WORK-SCHEDULE MODULE: Attemping to Fetch all work schedules");
+                List<ResWorkSchedule> response = workScheduleService.findAll().stream()
+                                .map(ws -> new ResWorkSchedule(ws, dayTypeService))
+                                .toList();
+                System.out.println(">>>WORK-SCHEDULE MODULE: Successfully fetched all work schedules");
+                return ResponseEntity.ok(response);
+        }
 
-    @GetMapping("/{id}")
-    @ApiMessage("Lấy thông tin lịch làm việc theo ID")
-    public ResponseEntity<ResWorkSchedule> getWorkScheduleById(@PathVariable("id") Long id) {
-        return workScheduleService.findById(id)
-                .map(ws -> new ResWorkSchedule(ws, dayTypeService))
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
+        @GetMapping("/{id}")
+        @ApiMessage("Lấy thông tin lịch làm việc theo ID")
+        public ResponseEntity<ResWorkSchedule> getWorkScheduleById(@PathVariable("id") Long id) {
+                System.out.println(">>>WORK-SCHEDULE MODULE: Attemping to Fetch work schedule by ID: " + id);
+                ResponseEntity<ResWorkSchedule> res = workScheduleService.findById(id)
+                                .map(ws -> new ResWorkSchedule(ws, dayTypeService))
+                                .map(ResponseEntity::ok)
+                                .orElse(ResponseEntity.notFound().build());
+                System.out.println(">>>WORK-SCHEDULE MODULE: Successfully fetched work schedule by ID: " + id);
+                return res;
+        }
 
-    @GetMapping("/employee/{employeeId}")
-    @ApiMessage("Lấy danh sách lịch làm việc theo nhân viên")
-    public ResponseEntity<List<ResWorkSchedule>> getWorkSchedulesByEmployeeId(
+        @GetMapping("/employee/{employeeId}")
+        @ApiMessage("Lấy danh sách lịch làm việc theo nhân viên")
+        public ResponseEntity<List<ResWorkSchedule>> getWorkSchedulesByEmployeeId(
             @PathVariable("employeeId") Long employeeId) {
-        List<ResWorkSchedule> response = workScheduleService.findByEmployeeId(employeeId).stream()
-                .map(ws -> new ResWorkSchedule(ws, dayTypeService))
-                .toList();
-        return ResponseEntity.ok(response);
-    }
+                System.out
+                                .println(">>>WORK-SCHEDULE MODULE: Attemping to Fetch work schedules by Employee ID: "
+                                                + employeeId);
+                List<ResWorkSchedule> response = workScheduleService.findByEmployeeId(employeeId).stream()
+                                .map(ws -> new ResWorkSchedule(ws, dayTypeService))
+                                .toList();
+                System.out
+                                .println(">>>WORK-SCHEDULE MODULE: Successfully fetched work schedules by Employee ID: "
+                                                + employeeId);
+                return ResponseEntity.ok(response);
+        }
 
-    @GetMapping("/shift/{shiftId}")
-    @ApiMessage("Lấy danh sách lịch làm việc theo ca làm việc")
-    public ResponseEntity<List<ResWorkSchedule>> getWorkSchedulesByShiftId(@PathVariable("shiftId") Long shiftId) {
-        List<ResWorkSchedule> response = workScheduleService.findByShiftId(shiftId).stream()
-                .map(ws -> new ResWorkSchedule(ws, dayTypeService))
-                .toList();
-        return ResponseEntity.ok(response);
-    }
+        @GetMapping("/shift/{shiftId}")
+        @ApiMessage("Lấy danh sách lịch làm việc theo ca làm việc")
+        public ResponseEntity<List<ResWorkSchedule>> getWorkSchedulesByShiftId(@PathVariable("shiftId") Long shiftId) {
+                System.out.println(
+                                ">>>WORK-SCHEDULE MODULE: Attemping to Fetch work schedules by Shift ID: " + shiftId);
+                List<ResWorkSchedule> response = workScheduleService.findByShiftId(shiftId).stream()
+                                .map(ws -> new ResWorkSchedule(ws, dayTypeService))
+                                .toList();
+                System.out.println(
+                                ">>>WORK-SCHEDULE MODULE: Successfully fetched work schedules by Shift ID: " + shiftId);
+                return ResponseEntity.ok(response);
+        }
 
-    @GetMapping("/date/{workDate}")
-    @ApiMessage("Lấy danh sách lịch làm việc theo ngày")
-    public ResponseEntity<List<ResWorkSchedule>> getWorkSchedulesByWorkDate(
-            @PathVariable("workDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate workDate) {
-        List<ResWorkSchedule> response = workScheduleService.findByWorkDate(workDate).stream()
-                .map(ws -> new ResWorkSchedule(ws, dayTypeService))
-                .toList();
-        return ResponseEntity.ok(response);
-    }
+        /**
+         * Lấy danh sách lịch làm việc theo ca làm việc và khoảng thời gian cụ thể.
+         * Endpoint này cho phép truy vấn tất cả các lịch làm việc được gán cho một ca
+         * cụ thể
+         * trong khoảng thời gian từ ngày bắt đầu đến ngày kết thúc.
+         *
+         * @param shiftId   ID của ca làm việc cần tìm lịch làm việc
+         * @param startDate Ngày bắt đầu của khoảng thời gian (định dạng: yyyy-MM-dd)
+         * @param endDate   Ngày kết thúc của khoảng thời gian (định dạng: yyyy-MM-dd)
+         * @return ResponseEntity chứa ResShiftListWorkSchedule với danh sách lịch làm
+         *         việc
+         *         của ca đã chỉ định trong khoảng thời gian
+         *
+         * @throws IllegalArgumentException nếu shiftId không tồn tại hoặc khoảng thời
+         *                                  gian không hợp lệ
+         *
+         *                                  <h3>Ví dụ sử dụng API:</h3>
+         * 
+         *                                  GET
+         *                                  /api/v1/work-schedules/shift/1/date-range?startDate=2025-12-01&endDate=2025-12-31
+         */
+        @GetMapping("/shift/{shiftId}/date-range")
+        @ApiMessage("Lấy lịch làm việc theo ca và khoảng thời gian")
+        public ResponseEntity<ResShiftListWorkSchedule> getWorkSchedulesByShiftIdAndDateRange(
+                        @PathVariable("shiftId") Long shiftId,
+                        @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                        @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+                System.out.println(
+                                ">>>WORK-SCHEDULE MODULE: Attemping to Fetch work schedules by Shift ID and Date Range: "
+                                                + shiftId + ", " + startDate + " to " + endDate);
+                List<ResWorkSchedule> response = workScheduleService
+                                .findByShiftIdAndWorkDateBetween(shiftId, startDate, endDate).stream()
+                                .map(ws -> new ResWorkSchedule(ws, dayTypeService))
+                                .toList();
+                System.out.println(
+                                ">>>WORK-SCHEDULE MODULE: Successfully fetched work schedules by Shift ID and Date Range: "
+                                                + shiftId + ", " + startDate + " to " + endDate);
+                ResShiftListWorkSchedule shiftListWorkSchedule = new ResShiftListWorkSchedule(response);
+                return ResponseEntity.ok(shiftListWorkSchedule);
+        }
 
-    @GetMapping("/employee/{employeeId}/date/{workDate}")
-    @ApiMessage("Lấy lịch làm việc của nhân viên theo ngày")
-    public ResponseEntity<List<ResWorkSchedule>> getWorkSchedulesByEmployeeIdAndWorkDate(
-            @PathVariable("employeeId") Long employeeId,
-            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate workDate) {
-        List<ResWorkSchedule> response = workScheduleService.findByEmployeeIdAndWorkDate(employeeId, workDate).stream()
-                .map(ws -> new ResWorkSchedule(ws, dayTypeService))
-                .toList();
-        return ResponseEntity.ok(response);
-    }
+        @GetMapping("/date/{workDate}")
+        @ApiMessage("Lấy danh sách lịch làm việc theo ngày")
+        public ResponseEntity<List<ResWorkSchedule>> getWorkSchedulesByWorkDate(
+                        @PathVariable("workDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate workDate) {
+                System.out.println(
+                                ">>>WORK-SCHEDULE MODULE: Attemping to Fetch work schedules by Work Date: " + workDate);
+                List<ResWorkSchedule> response = workScheduleService.findByWorkDate(workDate).stream()
+                                .map(ws -> new ResWorkSchedule(ws, dayTypeService))
+                                .toList();
+                System.out.println(">>>WORK-SCHEDULE MODULE: Successfully fetched work schedules by Work Date: "
+                                + workDate);
+                return ResponseEntity.ok(response);
+        }
 
-    @GetMapping("/employee/{employeeId}/date-range")
-    @ApiMessage("Lấy lịch làm việc của nhân viên theo khoảng thời gian")
-    public ResponseEntity<ResEmpListWorkSchedule> getWorkSchedulesByEmployeeIdAndDateRange(
-            @PathVariable("employeeId") Long employeeId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        List<ResWorkSchedule> workSchedules = workScheduleService
-                .findByEmployeeIdAndWorkDateBetween(employeeId, startDate, endDate).stream()
-                .map(ws -> new ResWorkSchedule(ws, dayTypeService))
-                .toList();
-        ResEmpListWorkSchedule response = new ResEmpListWorkSchedule(workSchedules.get(0).getEmployee(), startDate,
-                endDate, workSchedules);
-        return ResponseEntity.ok(response);
-    }
+        @GetMapping("/employee/{employeeId}/date/{workDate}")
+        @ApiMessage("Lấy lịch làm việc của nhân viên theo ngày")
+        public ResponseEntity<List<ResWorkSchedule>> getWorkSchedulesByEmployeeIdAndWorkDate(
+                        @PathVariable("employeeId") Long employeeId,
+                        @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate workDate) {
+                System.out.println(
+                                ">>>WORK-SCHEDULE MODULE: Attemping to Fetch work schedules by Employee ID and Work Date: "
+                                                + employeeId + ", " + workDate);
+                List<ResWorkSchedule> response = workScheduleService.findByEmployeeIdAndWorkDate(employeeId, workDate)
+                                .stream()
+                                .map(ws -> new ResWorkSchedule(ws, dayTypeService))
+                                .toList();
+                System.out.println(
+                                ">>>WORK-SCHEDULE MODULE: Successfully fetched work schedules by Employee ID and Work Date: "
+                                                + employeeId + ", " + workDate);
+                return ResponseEntity.ok(response);
+        }
 
-    @PostMapping
-    @ApiMessage("Tạo mới lịch làm việc")
-    public ResponseEntity<ResWorkSchedule> createWorkSchedule(@RequestBody WorkSchedule workSchedule) {
-        WorkSchedule createdWorkSchedule = workScheduleService.createWorkSchedule(workSchedule);
-        return ResponseEntity.status(HttpStatus.CREATED).body(new ResWorkSchedule(createdWorkSchedule, dayTypeService));
-    }
+        @GetMapping("/employee/{employeeId}/date-range")
+        @ApiMessage("Lấy lịch làm việc của nhân viên theo khoảng thời gian")
+        public ResponseEntity<ResEmpListWorkSchedule> getWorkSchedulesByEmployeeIdAndDateRange(
+                        @PathVariable("employeeId") Long employeeId,
+                        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+                System.out.println(
+                                ">>>WORK-SCHEDULE MODULE: Attemping to Fetch work schedules by Employee ID and Date Range: "
+                                                + employeeId + ", " + startDate + " to " + endDate);
+                List<ResWorkSchedule> workSchedules = workScheduleService
+                                .findByEmployeeIdAndWorkDateBetween(employeeId, startDate, endDate).stream()
+                                .map(ws -> new ResWorkSchedule(ws, dayTypeService))
+                                .toList();
+                System.out
+                                .println(">>>WORK-SCHEDULE MODULE: Successfully fetched work schedules by Employee ID and Date Range: "
+                                                + employeeId + ", " + startDate + " to " + endDate);
+                ResEmpListWorkSchedule response = new ResEmpListWorkSchedule(workSchedules.get(0).getEmployee(),
+                                startDate,
+                                endDate, workSchedules);
+                return ResponseEntity.ok(response);
+        }
 
-    @PatchMapping("/{id}")
-    @ApiMessage("Cập nhật lịch làm việc")
-    public ResponseEntity<ResWorkSchedule> updateWorkSchedule(@PathVariable("id") Long id,
-            @RequestBody WorkSchedule workSchedule) {
-        WorkSchedule updatedWorkSchedule = workScheduleService.updateWorkSchedule(id, workSchedule);
-        return ResponseEntity.ok(new ResWorkSchedule(updatedWorkSchedule, dayTypeService));
-    }
+        @PostMapping
+        @ApiMessage("Tạo mới lịch làm việc")
+        public ResponseEntity<ResWorkSchedule> createWorkSchedule(@RequestBody WorkSchedule workSchedule) {
+                System.out.println(">>>WORK-SCHEDULE MODULE: Attemping to Create new work schedule: " + workSchedule);
+                WorkSchedule createdWorkSchedule = workScheduleService.createWorkSchedule(workSchedule);
+                System.out.println(">>>WORK-SCHEDULE MODULE: Successfully created new work schedule: "
+                                + createdWorkSchedule);
+                return ResponseEntity.status(HttpStatus.CREATED)
+                                .body(new ResWorkSchedule(createdWorkSchedule, dayTypeService));
+        }
 
-    @DeleteMapping("/{id}")
-    @ApiMessage("Xóa lịch làm việc")
-    public ResponseEntity<Void> deleteWorkSchedule(@PathVariable("id") Long id) {
-        workScheduleService.deleteById(id);
-        return ResponseEntity.noContent().build();
-    }
+        @PatchMapping("/{id}")
+        @ApiMessage("Cập nhật lịch làm việc")
+        public ResponseEntity<ResWorkSchedule> updateWorkSchedule(@PathVariable("id") Long id,
+                        @RequestBody WorkSchedule workSchedule) {
+                System.out.println(">>>WORK-SCHEDULE MODULE: Attemping to Update work schedule ID: " + id);
+                WorkSchedule updatedWorkSchedule = workScheduleService.updateWorkSchedule(id, workSchedule);
+                System.out.println(">>>WORK-SCHEDULE MODULE: Successfully updated work schedule ID: " + id);
+                return ResponseEntity.ok(new ResWorkSchedule(updatedWorkSchedule, dayTypeService));
+        }
 
-    @GetMapping("/exists")
-    @ApiMessage("Kiểm tra lịch làm việc có tồn tại")
-    public ResponseEntity<Boolean> checkWorkScheduleExists(
-            @RequestParam("employeeId") Long employeeId,
-            @RequestParam("shiftId") Long shiftId,
-            @RequestParam("workDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate workDate) {
-        boolean exists = workScheduleService.existsByEmployeeIdAndShiftIdAndWorkDate(employeeId, shiftId, workDate);
-        return ResponseEntity.ok(exists);
-    }
+        @DeleteMapping("/{id}")
+        @ApiMessage("Xóa lịch làm việc")
+        public ResponseEntity<Void> deleteWorkSchedule(@PathVariable("id") Long id) {
+                workScheduleService.deleteById(id);
+                return ResponseEntity.noContent().build();
+        }
+
+        @GetMapping("/exists")
+        @ApiMessage("Kiểm tra lịch làm việc có tồn tại")
+        public ResponseEntity<Boolean> checkWorkScheduleExists(
+                        @RequestParam("employeeId") Long employeeId,
+                        @RequestParam("shiftId") Long shiftId,
+                        @RequestParam("workDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate workDate) {
+                System.out.println(
+                                ">>>WORK-SCHEDULE MODULE: Attemping to Check existence of work schedule for Employee ID: "
+                                                + employeeId + ", Shift ID: " + shiftId + ", Work Date: " + workDate);
+                boolean exists = workScheduleService.existsByEmployeeIdAndShiftIdAndWorkDate(employeeId, shiftId,
+                                workDate);
+                return ResponseEntity.ok(exists);
+        }
 
 }

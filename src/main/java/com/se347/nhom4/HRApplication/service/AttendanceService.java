@@ -38,7 +38,9 @@ public class AttendanceService {
 
     @Transactional
     public ResAttendance checkIn(Long employeeId, ReqCheckIn req) {
-
+        System.out.println(">>>ATTENDANCE MODULE: Check-in attempt for employeeId: " + employeeId +
+                ", workScheduleId: " + req.getWorkScheduleId() + " in AttendanceService");
+        System.out.println(">>>ATTENDANCE MODULE: finding WorkSchedule with id: " + req.getWorkScheduleId());
         WorkSchedule schedule = workScheduleRepository.findById(req.getWorkScheduleId())
                 .orElseThrow(() -> new IllegalArgumentException(
                         "WorkSchedule not found with id: " + req.getWorkScheduleId()));
@@ -46,13 +48,14 @@ public class AttendanceService {
         validateOwner(schedule, employeeId);
 
         int distanceMeters = validateWorkSiteAndComputeDistance(
-                schedule, req.getLat(), req.getLng(), req.getAccuracyMeters()
-        );
+                schedule, req.getLat(), req.getLng(), req.getAccuracyMeters());
 
+        System.out.println(">>>ATTENDANCE MODULE: finding Attendance for WorkSchedule id: " + schedule.getId());
         Attendance attendance = attendanceRepository.findByWorkSchedule_Id(schedule.getId())
                 .orElseGet(() -> buildNewAttendance(schedule));
 
         if (attendance.getCheckIn() != null) {
+            System.out.println(">>>ATTENDANCE MODULE: Check-in already done for WorkSchedule id: " + schedule.getId());
             throw new IllegalArgumentException("Ca này đã check-in rồi");
         }
 
@@ -64,13 +67,18 @@ public class AttendanceService {
         attendance.setCheckInAccuracyMeters(req.getAccuracyMeters());
         attendance.setCheckInDistanceMeters(distanceMeters);
 
+        System.out.println(
+                ">>>ATTENDANCE MODULE: Check-in recorded at " + now + " for WorkSchedule id: " + schedule.getId());
+
         Attendance saved = attendanceRepository.save(attendance);
         return toResponse(saved);
     }
 
     @Transactional
     public ResAttendance checkOut(Long employeeId, ReqCheckOut req) {
-
+        System.out.println(">>>ATTENDANCE MODULE: Check-out attempt for employeeId: " + employeeId +
+                ", workScheduleId: " + req.getWorkScheduleId() + " in AttendanceService");
+        System.out.println(">>>ATTENDANCE MODULE: finding WorkSchedule with id: " + req.getWorkScheduleId());
         WorkSchedule schedule = workScheduleRepository.findById(req.getWorkScheduleId())
                 .orElseThrow(() -> new IllegalArgumentException(
                         "WorkSchedule not found with id: " + req.getWorkScheduleId()));
@@ -78,21 +86,25 @@ public class AttendanceService {
         validateOwner(schedule, employeeId);
 
         int distanceMeters = validateWorkSiteAndComputeDistance(
-                schedule, req.getLat(), req.getLng(), req.getAccuracyMeters()
-        );
+                schedule, req.getLat(), req.getLng(), req.getAccuracyMeters());
 
+        System.out.println(">>>ATTENDANCE MODULE: finding Attendance for WorkSchedule id: " + schedule.getId());
         Attendance attendance = attendanceRepository.findByWorkSchedule_Id(schedule.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Chưa check-in nên không thể check-out"));
 
         if (attendance.getCheckIn() == null) {
+            System.out.println(">>>ATTENDANCE MODULE: Check-out attempted without check-in for WorkSchedule id: "
+                    + schedule.getId());
             throw new IllegalArgumentException("Chưa check-in nên không thể check-out");
         }
         if (attendance.getCheckOut() != null) {
+            System.out.println(">>>ATTENDANCE MODULE: Check-out already done for WorkSchedule id: " + schedule.getId());
             throw new IllegalArgumentException("Ca này đã check-out rồi");
         }
 
         Instant now = Instant.now();
         if (now.isBefore(attendance.getCheckIn())) {
+            System.out.println(">>>ATTENDANCE MODULE: Invalid check-out time for WorkSchedule id: " + schedule.getId());
             throw new IllegalArgumentException("Thời gian check-out không hợp lệ");
         }
 
@@ -102,9 +114,13 @@ public class AttendanceService {
         attendance.setCheckOutLng(req.getLng());
         attendance.setCheckOutAccuracyMeters(req.getAccuracyMeters());
         attendance.setCheckOutDistanceMeters(distanceMeters);
+        System.out.println(
+                ">>>ATTENDANCE MODULE: Check-out recorded at " + now + " for WorkSchedule id: " + schedule.getId());
 
         int totalMinutes = (int) Duration.between(attendance.getCheckIn(), attendance.getCheckOut()).toMinutes();
         attendance.setTotalWorkTime(Math.max(totalMinutes, 0));
+        System.out.println(">>>ATTENDANCE MODULE: Total work time calculated: " + attendance.getTotalWorkTime()
+                + " minutes for WorkSchedule id: " + schedule.getId());
 
         applyLateAndOvertime(attendance, schedule);
 
@@ -131,20 +147,46 @@ public class AttendanceService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public ResAttendance getAttendanceByWorkSchedule(Long workScheduleId, Long employeeId) {
+        // Kiểm tra WorkSchedule có tồn tại không
+        WorkSchedule schedule = workScheduleRepository.findById(workScheduleId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "WorkSchedule not found with id: " + workScheduleId));
+
+        // Kiểm tra quyền sở hữu
+        validateOwner(schedule, employeeId);
+
+        // Lấy attendance theo workScheduleId
+        Attendance attendance = attendanceRepository.findByWorkSchedule_Id(workScheduleId)
+                .orElse(null);
+
+        if (attendance == null) {
+            // Nếu chưa có attendance thì tạo một attendance trống (chưa check-in)
+            attendance = buildNewAttendance(schedule);
+        }
+
+        return toResponse(attendance);
+    }
+
     // ======================
     // Validation + Helpers
     // ======================
 
     private void validateOwner(WorkSchedule schedule, Long employeeId) {
+        System.out.println(">>>ATTENDANCE MODULE: Validating ownership for employeeId: " + employeeId +
+                ", workScheduleId: " + schedule.getId());
         if (schedule.getEmployee() == null || schedule.getEmployee().getId() == null) {
             throw new IllegalArgumentException("WorkSchedule thiếu thông tin nhân viên");
         }
         if (!schedule.getEmployee().getId().equals(employeeId)) {
             throw new IllegalArgumentException("Bạn không có quyền chấm công ca này");
         }
+        System.out.println(">>>ATTENDANCE MODULE: Ownership validated successfully");
     }
 
     private int validateWorkSiteAndComputeDistance(WorkSchedule schedule, double lat, double lng, int accuracyMeters) {
+        System.out.println(">>>ATTENDANCE MODULE: Validating WorkSite for WorkSchedule id: " + schedule.getId());
         WorkSite site = schedule.getWorkSite();
         if (site == null) {
             throw new IllegalArgumentException("Ca làm việc chưa gán WorkSite nên không thể chấm công GPS");
@@ -173,6 +215,7 @@ public class AttendanceService {
             throw new IllegalArgumentException("Bạn đang ở ngoài phạm vi chấm công (" + distance + "m)");
         }
 
+        System.out.println(">>>ATTENDANCE MODULE: WorkSite validated successfully, distance: " + distance + "m");
         return distance;
     }
 
@@ -197,13 +240,15 @@ public class AttendanceService {
      */
     private void applyLateAndOvertime(Attendance attendance, WorkSchedule schedule) {
 
-        if (schedule.getShift() == null) return;
+        if (schedule.getShift() == null)
+            return;
 
         LocalDate workDate = schedule.getWorkDate();
         LocalTime startTime = schedule.getShift().getStartTime();
         LocalTime endTime = schedule.getShift().getEndTime();
 
-        if (workDate == null || startTime == null || endTime == null) return;
+        if (workDate == null || startTime == null || endTime == null)
+            return;
 
         ZonedDateTime scheduledStart = workDate.atTime(startTime).atZone(VN_TZ);
 
@@ -225,6 +270,9 @@ public class AttendanceService {
             ot = (int) Duration.between(scheduledEnd, checkOutVn).toMinutes();
         }
         attendance.setOvertime(Math.max(ot, 0));
+        System.out.println(">>>ATTENDANCE MODULE: Late time calculated: " + attendance.getLateTime()
+                + " minutes, Overtime calculated: " + attendance.getOvertime() + " minutes for WorkSchedule id: "
+                + schedule.getId());
     }
 
     private ResAttendance toResponse(Attendance a) {
@@ -260,7 +308,8 @@ public class AttendanceService {
     private static final class GeoUtils {
         private static final double EARTH_RADIUS_METERS = 6371000.0;
 
-        private GeoUtils() {}
+        private GeoUtils() {
+        }
 
         static int distanceMeters(double lat1, double lng1, double lat2, double lng2) {
             double dLat = Math.toRadians(lat2 - lat1);
@@ -268,7 +317,7 @@ public class AttendanceService {
 
             double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
                     + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
-                    * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+                            * Math.sin(dLng / 2) * Math.sin(dLng / 2);
 
             double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             return (int) Math.round(EARTH_RADIUS_METERS * c);

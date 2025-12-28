@@ -27,7 +27,7 @@ public class WorkScheduleService {
     private final ShiftRepository shiftRepository;
     private final WorkSiteRepository workSiteRepository;
 
-    //gán WorkSite cho WorkSchedule (phục vụ GPS chấm công)
+    // gán WorkSite cho WorkSchedule (phục vụ GPS chấm công)
     @Transactional
     public WorkSchedule assignWorkSite(Long workScheduleId, Long workSiteId) {
         WorkSchedule ws = workScheduleRepository.findById(workScheduleId)
@@ -43,6 +43,7 @@ public class WorkScheduleService {
         ws.setWorkSite(site);
         return workScheduleRepository.save(ws);
     }
+
     // bỏ WorkSite khỏi WorkSchedule
     @Transactional
     public WorkSchedule removeWorkSite(Long workScheduleId) {
@@ -57,6 +58,7 @@ public class WorkScheduleService {
      * Get all work schedules.
      */
     public List<WorkSchedule> findAll() {
+        System.out.println(">>>WORK-SCHEDULE MODULE: Attemping to Fetch all work schedules in WS Service");
         return workScheduleRepository.findAll();
     }
 
@@ -64,6 +66,7 @@ public class WorkScheduleService {
      * Find work schedule by ID.
      */
     public Optional<WorkSchedule> findById(Long id) {
+        System.out.println(">>>WORK-SCHEDULE MODULE: Attemping to Fetch work schedule by ID in WS Service: " + id);
         return workScheduleRepository.findById(id);
     }
 
@@ -112,14 +115,30 @@ public class WorkScheduleService {
     }
 
     /**
+     * Get active work schedules by shift ID and date range.
+     */
+    public List<WorkSchedule> findByShiftIdAndWorkDateBetween(Long shiftId, LocalDate startDate, LocalDate endDate) {
+        List<WorkSchedule> workSchedules = workScheduleRepository.findByShiftIdAndWorkDateBetween(shiftId, startDate,
+                endDate);
+        List<WorkSchedule> activeWorkSchedules = new ArrayList<>();
+        for (WorkSchedule ws : workSchedules) {
+            if (ws.getShift().getIsActive() == true) {
+                activeWorkSchedules.add(ws);
+            }
+        }
+        return activeWorkSchedules;
+    }
+
+    /**
      * Create new work schedule.
      */
     public WorkSchedule createWorkSchedule(WorkSchedule workSchedule) {
-        //kiểm tra worksite id
+        // kiểm tra worksite id
         if (workSchedule.getWorkSite() == null || workSchedule.getWorkSite().getId() == null)
             throw new IllegalArgumentException("workSite.id is required");
         var site = workSiteRepository.findById(workSchedule.getWorkSite().getId())
-                .orElseThrow(() -> new IllegalArgumentException("WorkSite not found: " + workSchedule.getWorkSite().getId()));
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "WorkSite not found: " + workSchedule.getWorkSite().getId()));
         if (site.getActive() != null && !site.getActive())
             throw new IllegalArgumentException("WorkSite inactive");
         workSchedule.setWorkSite(site);
