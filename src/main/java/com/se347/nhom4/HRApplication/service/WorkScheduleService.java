@@ -130,22 +130,49 @@ public class WorkScheduleService {
     /**
      * Update work schedule.
      */
-    public WorkSchedule updateWorkSchedule(Long id, WorkSchedule workSchedule) {
-        //kiểm tra workSchedule
-        WorkSchedule existing = workScheduleRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("WorkSchedule not found: " + id));
+    @Transactional
+public WorkSchedule updateWorkSchedule(Long id, WorkSchedule req) {
+    WorkSchedule existing = workScheduleRepository.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("WorkSchedule not found: " + id));
 
-        //kiểm tra worksite id
-        if (workSchedule.getWorkSite() != null && workSchedule.getWorkSite().getId() != null) {
-            var site = workSiteRepository.findById(workSchedule.getWorkSite().getId())
-                    .orElseThrow(() -> new IllegalArgumentException("WorkSite not found: " + workSchedule.getWorkSite().getId()));
-            if (site.getActive() != null && !site.getActive())
-                throw new IllegalArgumentException("WorkSite inactive");
-            existing.setWorkSite(site);
-        }
-
-        return workScheduleRepository.save(existing);
+    // 1) WorkDate
+    if (req.getWorkDate() != null) {
+        existing.setWorkDate(req.getWorkDate());
     }
+
+    // hoặc:
+    // if (req.getDescription() != null) existing.setDescription(req.getDescription());
+
+    // 3) Employee (nếu cho phép đổi nhân viên)
+    if (req.getEmployee() != null && req.getEmployee().getId() != null) {
+        var emp = employeeRepository.findById(req.getEmployee().getId())
+                .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + req.getEmployee().getId()));
+        // nếu có active:
+        // if (Boolean.FALSE.equals(emp.getActive())) throw new IllegalArgumentException("Employee inactive");
+        existing.setEmployee(emp);
+    }
+
+    // 4) Shift (nếu cho phép đổi ca)
+    if (req.getShift() != null && req.getShift().getId() != null) {
+        var shift = shiftRepository.findById(req.getShift().getId())
+                .orElseThrow(() -> new IllegalArgumentException("Shift not found: " + req.getShift().getId()));
+        // nếu shift có active:
+        // if (Boolean.FALSE.equals(shift.getIsActive())) throw new IllegalArgumentException("Shift inactive");
+        existing.setShift(shift);
+    }
+
+    // 5) WorkSite (đoạn bạn đã làm, giữ lại)
+    if (req.getWorkSite() != null && req.getWorkSite().getId() != null) {
+        var site = workSiteRepository.findById(req.getWorkSite().getId())
+                .orElseThrow(() -> new IllegalArgumentException("WorkSite not found: " + req.getWorkSite().getId()));
+        if (Boolean.FALSE.equals(site.getActive()))
+            throw new IllegalArgumentException("WorkSite inactive");
+        existing.setWorkSite(site);
+    }
+
+   
+    return workScheduleRepository.save(existing);
+}
 
     /**
      * Delete work schedule by ID.
