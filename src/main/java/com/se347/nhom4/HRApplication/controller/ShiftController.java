@@ -32,7 +32,7 @@ public class ShiftController {
     @PatchMapping("/{id}")
     @ApiMessage("Cập nhật thông tin ca làm việc")
     public ResponseEntity<ResShiftDTO> patchShift(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestBody ReqShiftDTO dto) {
         System.out.println(">>>SHIFT MODULE: Updating shift with id: " + id);
         return ResponseEntity.ok(shiftService.updateShift(id, dto));

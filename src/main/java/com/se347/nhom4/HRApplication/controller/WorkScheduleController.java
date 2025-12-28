@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -47,7 +48,7 @@ public class WorkScheduleController {
 
         @GetMapping("/{id}")
         @ApiMessage("Lấy thông tin lịch làm việc theo ID")
-        public ResponseEntity<ResWorkSchedule> getWorkScheduleById(@PathVariable Long id) {
+        public ResponseEntity<ResWorkSchedule> getWorkScheduleById(@PathVariable("id") Long id) {
                 System.out.println(">>>WORK-SCHEDULE MODULE: Attemping to Fetch work schedule by ID: " + id);
                 ResponseEntity<ResWorkSchedule> res = workScheduleService.findById(id)
                                 .map(ws -> new ResWorkSchedule(ws, dayTypeService))
@@ -59,7 +60,8 @@ public class WorkScheduleController {
 
         @GetMapping("/employee/{employeeId}")
         @ApiMessage("Lấy danh sách lịch làm việc theo nhân viên")
-        public ResponseEntity<List<ResWorkSchedule>> getWorkSchedulesByEmployeeId(@PathVariable Long employeeId) {
+        public ResponseEntity<List<ResWorkSchedule>> getWorkSchedulesByEmployeeId(
+            @PathVariable("employeeId") Long employeeId) {
                 System.out
                                 .println(">>>WORK-SCHEDULE MODULE: Attemping to Fetch work schedules by Employee ID: "
                                                 + employeeId);
@@ -74,7 +76,7 @@ public class WorkScheduleController {
 
         @GetMapping("/shift/{shiftId}")
         @ApiMessage("Lấy danh sách lịch làm việc theo ca làm việc")
-        public ResponseEntity<List<ResWorkSchedule>> getWorkSchedulesByShiftId(@PathVariable Long shiftId) {
+        public ResponseEntity<List<ResWorkSchedule>> getWorkSchedulesByShiftId(@PathVariable("shiftId") Long shiftId) {
                 System.out.println(
                                 ">>>WORK-SCHEDULE MODULE: Attemping to Fetch work schedules by Shift ID: " + shiftId);
                 List<ResWorkSchedule> response = workScheduleService.findByShiftId(shiftId).stream()
@@ -143,7 +145,7 @@ public class WorkScheduleController {
         @GetMapping("/employee/{employeeId}/date/{workDate}")
         @ApiMessage("Lấy lịch làm việc của nhân viên theo ngày")
         public ResponseEntity<List<ResWorkSchedule>> getWorkSchedulesByEmployeeIdAndWorkDate(
-                        @PathVariable Long employeeId,
+                        @PathVariable("employeeId") Long employeeId,
                         @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate workDate) {
                 System.out.println(
                                 ">>>WORK-SCHEDULE MODULE: Attemping to Fetch work schedules by Employee ID and Work Date: "
@@ -161,7 +163,7 @@ public class WorkScheduleController {
         @GetMapping("/employee/{employeeId}/date-range")
         @ApiMessage("Lấy lịch làm việc của nhân viên theo khoảng thời gian")
         public ResponseEntity<ResEmpListWorkSchedule> getWorkSchedulesByEmployeeIdAndDateRange(
-                        @PathVariable Long employeeId,
+                        @PathVariable("employeeId") Long employeeId,
                         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
                         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
                 System.out.println(
@@ -191,9 +193,9 @@ public class WorkScheduleController {
                                 .body(new ResWorkSchedule(createdWorkSchedule, dayTypeService));
         }
 
-        @PutMapping("/{id}")
+        @PatchMapping("/{id}")
         @ApiMessage("Cập nhật lịch làm việc")
-        public ResponseEntity<ResWorkSchedule> updateWorkSchedule(@PathVariable Long id,
+        public ResponseEntity<ResWorkSchedule> updateWorkSchedule(@PathVariable("id") Long id,
                         @RequestBody WorkSchedule workSchedule) {
                 System.out.println(">>>WORK-SCHEDULE MODULE: Attemping to Update work schedule ID: " + id);
                 WorkSchedule updatedWorkSchedule = workScheduleService.updateWorkSchedule(id, workSchedule);
@@ -203,7 +205,7 @@ public class WorkScheduleController {
 
         @DeleteMapping("/{id}")
         @ApiMessage("Xóa lịch làm việc")
-        public ResponseEntity<Void> deleteWorkSchedule(@PathVariable Long id) {
+        public ResponseEntity<Void> deleteWorkSchedule(@PathVariable("id") Long id) {
                 workScheduleService.deleteById(id);
                 return ResponseEntity.noContent().build();
         }
@@ -211,9 +213,9 @@ public class WorkScheduleController {
         @GetMapping("/exists")
         @ApiMessage("Kiểm tra lịch làm việc có tồn tại")
         public ResponseEntity<Boolean> checkWorkScheduleExists(
-                        @RequestParam Long employeeId,
-                        @RequestParam Long shiftId,
-                        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate workDate) {
+                        @RequestParam("employeeId") Long employeeId,
+                        @RequestParam("shiftId") Long shiftId,
+                        @RequestParam("workDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate workDate) {
                 System.out.println(
                                 ">>>WORK-SCHEDULE MODULE: Attemping to Check existence of work schedule for Employee ID: "
                                                 + employeeId + ", Shift ID: " + shiftId + ", Work Date: " + workDate);
@@ -221,4 +223,5 @@ public class WorkScheduleController {
                                 workDate);
                 return ResponseEntity.ok(exists);
         }
+
 }
