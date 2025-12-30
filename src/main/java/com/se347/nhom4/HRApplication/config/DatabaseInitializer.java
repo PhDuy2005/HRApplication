@@ -33,10 +33,14 @@ public class DatabaseInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
+        boolean permissionsCreated = false;
+        boolean rolesCreated = false;
+
         // Kiểm tra và khởi tạo permissions
         if (!permissionService.hasAnyPermissions()) {
             System.out.println(">>>DATABASE INITIALIZER: Bảng permissions trống, đang khởi tạo dữ liệu...");
             initPermissions();
+            permissionsCreated = true;
             System.out.println(">>>DATABASE INITIALIZER: Khởi tạo permissions thành công!");
         } else {
             System.out.println(">>>DATABASE INITIALIZER: Bảng permissions đã có dữ liệu ("
@@ -47,14 +51,21 @@ public class DatabaseInitializer implements CommandLineRunner {
         if (!roleService.hasAnyRoles()) {
             System.out.println(">>>DATABASE INITIALIZER: Bảng roles trống, đang khởi tạo dữ liệu...");
             initRoles();
+            rolesCreated = true;
             System.out.println(">>>DATABASE INITIALIZER: Khởi tạo roles thành công!");
         } else {
             System.out.println(">>>DATABASE INITIALIZER: Bảng roles đã có dữ liệu (" + roleService.count() + " roles)");
-
-            // Kiểm tra và tạo tài khoản admin
-            initAdminAccount();
-
         }
+
+        // Nếu có permissions mới được tạo hoặc roles mới được tạo, cập nhật lại quan hệ
+        if (permissionsCreated || rolesCreated) {
+            System.out.println(">>>DATABASE INITIALIZER: Đang cập nhật lại quan hệ role-permission...");
+            updateRolePermissions();
+            System.out.println(">>>DATABASE INITIALIZER: Cập nhật quan hệ role-permission thành công!");
+        }
+
+        // Kiểm tra và tạo tài khoản admin
+        initAdminAccount();
     }
 
     /**
@@ -90,6 +101,19 @@ public class DatabaseInitializer implements CommandLineRunner {
         // ==================== WORK SCHEDULE MODULE ====================
         createPermission("Xem lịch làm việc", "/api/v1/work-schedules", "GET", "WORK_SCHEDULE");
         createPermission("Xem chi tiết lịch làm việc", "/api/v1/work-schedules/{id}", "GET", "WORK_SCHEDULE");
+        createPermission("Xem lịch làm việc theo nhân viên", "/api/v1/work-schedules/employee/{employeeId}", "GET",
+                "WORK_SCHEDULE");
+        createPermission("Xem lịch làm việc theo ca", "/api/v1/work-schedules/shift/{shiftId}", "GET",
+                "WORK_SCHEDULE");
+        createPermission("Xem lịch làm việc theo ca và khoảng thời gian",
+                "/api/v1/work-schedules/shift/{shiftId}/date-range", "GET", "WORK_SCHEDULE");
+        createPermission("Xem lịch làm việc theo ngày", "/api/v1/work-schedules/date/{workDate}", "GET",
+                "WORK_SCHEDULE");
+        createPermission("Xem lịch làm việc nhân viên theo ngày",
+                "/api/v1/work-schedules/employee/{employeeId}/date/{workDate}", "GET", "WORK_SCHEDULE");
+        createPermission("Xem lịch làm việc nhân viên theo khoảng thời gian",
+                "/api/v1/work-schedules/employee/{employeeId}/date-range", "GET", "WORK_SCHEDULE");
+        createPermission("Kiểm tra lịch làm việc tồn tại", "/api/v1/work-schedules/exists", "GET", "WORK_SCHEDULE");
         createPermission("Tạo lịch làm việc", "/api/v1/work-schedules", "POST", "WORK_SCHEDULE");
         createPermission("Cập nhật lịch làm việc", "/api/v1/work-schedules/{id}", "PUT", "WORK_SCHEDULE");
         createPermission("Xóa lịch làm việc", "/api/v1/work-schedules/{id}", "DELETE", "WORK_SCHEDULE");
@@ -284,5 +308,75 @@ public class DatabaseInitializer implements CommandLineRunner {
 
     private void addPermissionToList(List<Permission> permissionList, String permissionName) {
         permissionService.findByName(permissionName).ifPresent(permissionList::add);
+    }
+
+    /**
+     * Cập nhật lại quan hệ giữa role và permission
+     * Method này đảm bảo rằng:
+     * - ADMIN role luôn có tất cả permissions
+     * - EMPLOYEE role có đúng các permissions cần thiết
+     */
+    private void updateRolePermissions() {
+        // Lấy tất cả permissions từ database
+        List<Permission> allPermissions = permissionService.findAll();
+
+        // Cập nhật ADMIN role với tất cả permissions
+        roleService.findByName("ADMIN").ifPresent(adminRole -> {
+            adminRole.setPermissions(new ArrayList<>(allPermissions));
+            roleService.save(adminRole);
+            System.out.println("  ✓ Đã cập nhật ADMIN role với " + allPermissions.size() + " permissions");
+        });
+
+        // Cập nhật EMPLOYEE role với permissions cần thiết
+        roleService.findByName("EMPLOYEE").ifPresent(employeeRole -> {
+            List<Permission> employeePermissions = new ArrayList<>();
+
+            // Thêm permissions cho Employee
+            addPermissionToList(employeePermissions, "Đăng nhập");
+            addPermissionToList(employeePermissions, "Lấy thông tin tài khoản");
+            addPermissionToList(employeePermissions, "Refresh token");
+            addPermissionToList(employeePermissions, "Đăng xuất");
+
+            // Xem thông tin nhân viên
+            addPermissionToList(employeePermissions, "Xem danh sách nhân viên active");
+            addPermissionToList(employeePermissions, "Xem chi tiết nhân viên");
+
+            // Chấm công
+            addPermissionToList(employeePermissions, "Check-in");
+            addPermissionToList(employeePermissions, "Check-out");
+            addPermissionToList(employeePermissions, "Xem danh sách chấm công");
+            addPermissionToList(employeePermissions, "Xem chi tiết chấm công");
+            addPermissionToList(employeePermissions, "Xem chấm công của bản thân");
+            addPermissionToList(employeePermissions, "Xem chấm công theo lịch làm việc");
+
+            // Xem lịch làm việc
+            addPermissionToList(employeePermissions, "Xem lịch làm việc");
+            addPermissionToList(employeePermissions, "Xem chi tiết lịch làm việc");
+            addPermissionToList(employeePermissions, "Xem lịch làm việc theo nhân viên");
+            addPermissionToList(employeePermissions, "Xem lịch làm việc theo ca");
+            addPermissionToList(employeePermissions, "Xem lịch làm việc theo ca và khoảng thời gian");
+            addPermissionToList(employeePermissions, "Xem lịch làm việc theo ngày");
+            addPermissionToList(employeePermissions, "Xem lịch làm việc nhân viên theo ngày");
+            addPermissionToList(employeePermissions, "Xem lịch làm việc nhân viên theo khoảng thời gian");
+            addPermissionToList(employeePermissions, "Kiểm tra lịch làm việc tồn tại");
+
+            // Xem ca làm việc
+            addPermissionToList(employeePermissions, "Xem danh sách ca làm việc");
+            addPermissionToList(employeePermissions, "Xem danh sách ca làm việc đang hoạt động");
+            addPermissionToList(employeePermissions, "Xem chi tiết ca làm việc");
+            addPermissionToList(employeePermissions, "Tìm kiếm ca làm việc theo tên");
+
+            // Xem địa điểm làm việc
+            addPermissionToList(employeePermissions, "Xem danh sách địa điểm làm việc");
+            addPermissionToList(employeePermissions, "Xem chi tiết địa điểm làm việc");
+
+            // Xem lương
+            addPermissionToList(employeePermissions, "Xem bảng lương");
+            addPermissionToList(employeePermissions, "Xem chi tiết lương");
+
+            employeeRole.setPermissions(employeePermissions);
+            roleService.save(employeeRole);
+            System.out.println("  ✓ Đã cập nhật EMPLOYEE role với " + employeePermissions.size() + " permissions");
+        });
     }
 }

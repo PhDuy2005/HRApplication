@@ -71,7 +71,7 @@ Hệ thống có 2 roles mặc định được tạo tự động khi khởi đ
 
 ### 1. 👑 ADMIN (Quản Trị Viên)
 - **Mô tả**: Quản trị viên - Có toàn quyền truy cập hệ thống
-- **Permissions**: **TẤT CẢ** (54 permissions)
+- **Permissions**: **TẤT CẢ** (61 permissions)
 - **Quyền hạn**:
   - ✅ Toàn quyền quản lý nhân viên (CRUD)
   - ✅ Toàn quyền quản lý vai trò và quyền (CRUD)
@@ -83,7 +83,7 @@ Hệ thống có 2 roles mặc định được tạo tự động khi khởi đ
 
 ### 2. 👤 EMPLOYEE (Nhân Viên)
 - **Mô tả**: Nhân viên - Quyền truy cập cơ bản
-- **Permissions**: 24 permissions (giới hạn)
+- **Permissions**: 31 permissions (giới hạn)
 - **Quyền hạn**:
   - ✅ Đăng nhập/đăng xuất
   - ✅ Xem thông tin tài khoản cá nhân
@@ -134,14 +134,21 @@ Hệ thống có 2 roles mặc định được tạo tự động khi khởi đ
 | Cập nhật chấm công               | `/api/v1/attendances/{id}`                | PUT    | ATTENDANCE | ✅     | ❌        |
 | Xóa chấm công                    | `/api/v1/attendances/{id}`                | DELETE | ATTENDANCE | ✅     | ❌        |
 
-### 📅 WORK_SCHEDULE Module (5 permissions)
-| Permission Name            | API Path                      | Method | Module        | ADMIN | EMPLOYEE |
-| -------------------------- | ----------------------------- | ------ | ------------- | ----- | -------- |
-| Xem lịch làm việc          | `/api/v1/work-schedules`      | GET    | WORK_SCHEDULE | ✅     | ✅        |
-| Xem chi tiết lịch làm việc | `/api/v1/work-schedules/{id}` | GET    | WORK_SCHEDULE | ✅     | ✅        |
-| Tạo lịch làm việc          | `/api/v1/work-schedules`      | POST   | WORK_SCHEDULE | ✅     | ❌        |
-| Cập nhật lịch làm việc     | `/api/v1/work-schedules/{id}` | PUT    | WORK_SCHEDULE | ✅     | ❌        |
-| Xóa lịch làm việc          | `/api/v1/work-schedules/{id}` | DELETE | WORK_SCHEDULE | ✅     | ❌        |
+### 📅 WORK_SCHEDULE Module (12 permissions)
+| Permission Name                                   | API Path                                                       | Method | Module        | ADMIN | EMPLOYEE |
+| ------------------------------------------------- | -------------------------------------------------------------- | ------ | ------------- | ----- | -------- |
+| Xem lịch làm việc                                 | `/api/v1/work-schedules`                                       | GET    | WORK_SCHEDULE | ✅     | ✅        |
+| Xem chi tiết lịch làm việc                        | `/api/v1/work-schedules/{id}`                                  | GET    | WORK_SCHEDULE | ✅     | ✅        |
+| Xem lịch làm việc theo nhân viên                  | `/api/v1/work-schedules/employee/{employeeId}`                 | GET    | WORK_SCHEDULE | ✅     | ✅        |
+| Xem lịch làm việc theo ca                         | `/api/v1/work-schedules/shift/{shiftId}`                       | GET    | WORK_SCHEDULE | ✅     | ✅        |
+| Xem lịch làm việc theo ca và khoảng thời gian     | `/api/v1/work-schedules/shift/{shiftId}/date-range`            | GET    | WORK_SCHEDULE | ✅     | ✅        |
+| Xem lịch làm việc theo ngày                       | `/api/v1/work-schedules/date/{workDate}`                       | GET    | WORK_SCHEDULE | ✅     | ✅        |
+| Xem lịch làm việc nhân viên theo ngày             | `/api/v1/work-schedules/employee/{employeeId}/date/{workDate}` | GET    | WORK_SCHEDULE | ✅     | ✅        |
+| Xem lịch làm việc nhân viên theo khoảng thời gian | `/api/v1/work-schedules/employee/{employeeId}/date-range`      | GET    | WORK_SCHEDULE | ✅     | ✅        |
+| Kiểm tra lịch làm việc tồn tại                    | `/api/v1/work-schedules/exists`                                | GET    | WORK_SCHEDULE | ✅     | ✅        |
+| Tạo lịch làm việc                                 | `/api/v1/work-schedules`                                       | POST   | WORK_SCHEDULE | ✅     | ❌        |
+| Cập nhật lịch làm việc                            | `/api/v1/work-schedules/{id}`                                  | PUT    | WORK_SCHEDULE | ✅     | ❌        |
+| Xóa lịch làm việc                                 | `/api/v1/work-schedules/{id}`                                  | DELETE | WORK_SCHEDULE | ✅     | ❌        |
 
 ### 🕐 SHIFT Module (7 permissions)
 | Permission Name                          | API Path                | Method | Module | ADMIN | EMPLOYEE |

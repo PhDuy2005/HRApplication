@@ -221,7 +221,7 @@ public class WorkScheduleController {
                                 .body(new ResWorkSchedule(createdWorkSchedule, dayTypeService));
         }
 
-        @PatchMapping("/{id}")
+        @PutMapping("/{id}")
         @ApiMessage("Cập nhật lịch làm việc")
         public ResponseEntity<ResWorkSchedule> updateWorkSchedule(@PathVariable("id") Long id,
                         @RequestBody WorkSchedule workSchedule) {

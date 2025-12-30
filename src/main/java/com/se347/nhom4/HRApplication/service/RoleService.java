@@ -106,4 +106,12 @@ public class RoleService {
 
         return roleRepository.save(existingRole);
     }
+
+    /**
+     * Lưu role (dùng cho update permissions)
+     */
+    @Transactional
+    public Role save(Role role) {
+        return roleRepository.save(role);
+    }
 }
