@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -212,7 +213,7 @@ public class WorkScheduleController {
                                 .body(new ResWorkSchedule(createdWorkSchedule, dayTypeService));
         }
 
-        @PutMapping("/{id}")
+        @PatchMapping("/{id}")
         @ApiMessage("Cập nhật lịch làm việc")
         public ResponseEntity<ResWorkSchedule> updateWorkSchedule(@PathVariable("id") Long id,
                         @RequestBody WorkSchedule workSchedule) {
@@ -242,4 +243,5 @@ public class WorkScheduleController {
                                 workDate);
                 return ResponseEntity.ok(exists);
         }
+
 }
