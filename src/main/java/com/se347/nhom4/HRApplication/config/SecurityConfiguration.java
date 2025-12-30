@@ -100,24 +100,37 @@ public class SecurityConfiguration {
             CustomAuthenticationEntryPoint customAuthenticationEntryPoint) throws Exception {
 
         String[] whiteList = {
-                "/", "/login", "/actuator/**", "/storage/**",
-                "/api/v1/auth/login", "/api/v1/actuator/**", "/api/v1/auth/refresh", "/api/v1/auth/register",
-                "/api/v1/email/**",
+                // Public endpoints - không cần authentication
+                "/",
+                "/api/v1/auth/login", // Đăng nhập
+                "/api/v1/auth/refresh", // Refresh token
+                "/api/v1/auth/register", // Đăng ký (nếu có)
+
+                // Actuator endpoints (monitoring)
+                "/actuator/**",
+                "/api/v1/actuator/**",
+
+                // API Documentation (Swagger)
                 "/v3/api-docs/**",
                 "/swagger-ui/**",
-                "/swagger-ui.html"
+                "/swagger-ui.html",
+
+                // Static resources
+                "/storage/**"
         };
         http
                 .csrf(c -> c.disable())
                 .authorizeHttpRequests(
                         authz -> authz
-                                // .requestMatchers(whiteList).permitAll()
-                                // .requestMatchers(HttpMethod.GET, "/api/v1/jobs/**").permitAll()
-                                // .requestMatchers(HttpMethod.GET, "/api/v1/companies/**").permitAll()
-                                // .requestMatchers(HttpMethod.GET, "/api/v1/skills/**").permitAll()
-                                // .anyRequest().authenticated())
-                                .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
-                                .anyRequest().permitAll())
+                                // Cho phép OPTIONS requests (CORS preflight)
+                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                                // Cho phép các endpoints công khai
+                                .requestMatchers(whiteList).permitAll()
+                                // Tất cả endpoints khác yêu cầu authentication và sẽ kiểm tra permissions
+                                .anyRequest().authenticated())
+                // .requestMatchers(org.springframework.http.HttpMethod.OPTIONS,
+                // "/**").permitAll()
+                // .anyRequest().permitAll())
                 .cors(Customizer.withDefaults())
                 .oauth2ResourceServer((oauth2) -> oauth2.jwt(Customizer.withDefaults())
                         .authenticationEntryPoint(customAuthenticationEntryPoint))

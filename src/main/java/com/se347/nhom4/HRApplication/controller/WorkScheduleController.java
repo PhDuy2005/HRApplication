@@ -196,6 +196,14 @@ public class WorkScheduleController {
                 System.out.println(
                                 ">>>WORK-SCHEDULE MODULE: Successfully fetched work schedules by Employee ID and Date Range: "
                                                 + employeeId + ", " + startDate + " to " + endDate);
+                if (workSchedules.isEmpty()) {
+                        return ResponseEntity.ok(
+                                        new ResEmpListWorkSchedule(
+                                                        new ResWorkSchedule.Emp(employeeId, null),
+                                                        startDate,
+                                                        endDate,
+                                                        List.of()));
+                }
                 ResEmpListWorkSchedule response = new ResEmpListWorkSchedule(workSchedules.get(0).getEmployee(),
                                 startDate,
                                 endDate, workSchedules);
