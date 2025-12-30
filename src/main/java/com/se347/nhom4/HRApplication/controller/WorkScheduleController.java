@@ -196,6 +196,14 @@ public class WorkScheduleController {
                 System.out.println(
                                 ">>>WORK-SCHEDULE MODULE: Successfully fetched work schedules by Employee ID and Date Range: "
                                                 + employeeId + ", " + startDate + " to " + endDate);
+                if (workSchedules.isEmpty()) {
+                        return ResponseEntity.ok(
+                                        new ResEmpListWorkSchedule(
+                                                        new ResWorkSchedule.Emp(employeeId, null),
+                                                        startDate,
+                                                        endDate,
+                                                        List.of()));
+                }
                 ResEmpListWorkSchedule response = new ResEmpListWorkSchedule(workSchedules.get(0).getEmployee(),
                                 startDate,
                                 endDate, workSchedules);
@@ -213,7 +221,7 @@ public class WorkScheduleController {
                                 .body(new ResWorkSchedule(createdWorkSchedule, dayTypeService));
         }
 
-        @PatchMapping("/{id}")
+        @PutMapping("/{id}")
         @ApiMessage("Cập nhật lịch làm việc")
         public ResponseEntity<ResWorkSchedule> updateWorkSchedule(@PathVariable("id") Long id,
                         @RequestBody WorkSchedule workSchedule) {

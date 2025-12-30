@@ -15,7 +15,7 @@ import com.se347.nhom4.HRApplication.util.annotation.ApiMessage;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/attendances")
+@RequestMapping("/api/v1/attendances")
 @RequiredArgsConstructor
 public class AttendanceController {
 
