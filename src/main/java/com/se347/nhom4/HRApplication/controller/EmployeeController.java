@@ -36,6 +36,28 @@ public class EmployeeController {
                         .toList());
     }
 
+    /**
+     * Lấy danh sách tất cả nhân viên đang hoạt động (status = ACTIVE).
+     *
+     * @return ResponseEntity chứa danh sách nhân viên active
+     *
+     *         <h3>Ví dụ sử dụng API:</h3>
+     * 
+     *         <pre>
+     *         GET / api / v1 / employees / active
+     *         </pre>
+     */
+    @GetMapping("/active")
+    @ApiMessage("Lấy danh sách nhân viên đang hoạt động")
+    public ResponseEntity<List<ResEmployeeInfo>> getActiveEmployees() {
+        System.out.println(">>>EMPLOYEE MODULE: Fetching all active employees");
+        List<ResEmployeeInfo> activeEmployees = employeeService.findAllActive().stream()
+                .map(ResEmployeeInfo::new)
+                .toList();
+        System.out.println(">>>EMPLOYEE MODULE: Successfully fetched " + activeEmployees.size() + " active employees");
+        return ResponseEntity.ok(activeEmployees);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ResEmployeeInfo> getEmployeeById(@PathVariable("id") Long id) {
         return employeeService.findById(id)
@@ -55,8 +77,10 @@ public class EmployeeController {
     }
 
     @PutMapping("/{id}/basic-info")
-    public ResponseEntity<Employee> updateEmployee(@PathVariable("id") Long id, @RequestBody Employee employee) {
-        return ResponseEntity.ok(employeeService.updateEmployeeBasicInfo(id, employee));
+    public ResponseEntity<ResEmployeeInfo> updateEmployee(@PathVariable("id") Long id, @RequestBody Employee employee) {
+        System.out.println(">>>EMPLOYEE MODULE: Updating employee ID: " + id);
+        ResEmployeeInfo updatedEmployee = new ResEmployeeInfo(employeeService.updateEmployeeBasicInfo(id, employee));
+        return ResponseEntity.ok(updatedEmployee);
     }
 
     @DeleteMapping("/{id}")

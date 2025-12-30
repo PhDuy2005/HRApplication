@@ -270,9 +270,17 @@ public class AttendanceService {
             ot = (int) Duration.between(scheduledEnd, checkOutVn).toMinutes();
         }
         attendance.setOvertime(Math.max(ot, 0));
+
+        int early = 0;
+        if (checkOutVn != null && checkOutVn.isBefore(scheduledEnd)) {
+            early = (int) Duration.between(checkOutVn, scheduledEnd).toMinutes();
+        }
+        attendance.setEarlyLeave(Math.max(early, 0));
+
         System.out.println(">>>ATTENDANCE MODULE: Late time calculated: " + attendance.getLateTime()
-                + " minutes, Overtime calculated: " + attendance.getOvertime() + " minutes for WorkSchedule id: "
-                + schedule.getId());
+                + " minutes, Overtime calculated: " + attendance.getOvertime()
+                + " minutes, Early leave calculated: " + attendance.getEarlyLeave()
+                + " minutes for WorkSchedule id: " + schedule.getId());
     }
 
     private ResAttendance toResponse(Attendance a) {
@@ -288,6 +296,7 @@ public class AttendanceService {
                 .totalWorkTime(a.getTotalWorkTime())
                 .overtime(a.getOvertime())
                 .lateTime(a.getLateTime())
+                .earlyLeave(a.getEarlyLeave())
 
                 // GPS
                 .checkInLat(a.getCheckInLat())

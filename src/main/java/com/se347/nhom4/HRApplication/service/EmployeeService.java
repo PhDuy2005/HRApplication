@@ -52,6 +52,15 @@ public class EmployeeService {
     }
 
     /**
+     * Get all active employees from database.
+     * 
+     * @return List of all active employees.
+     */
+    public List<Employee> findAllActive() {
+        return employeeRepository.findByStatus(StatusEnum.ACTIVE);
+    }
+
+    /**
      * Find employee by ID.
      * 
      * @param id the employee ID to search for.

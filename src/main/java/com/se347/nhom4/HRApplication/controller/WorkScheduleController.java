@@ -61,7 +61,7 @@ public class WorkScheduleController {
         @GetMapping("/employee/{employeeId}")
         @ApiMessage("Lấy danh sách lịch làm việc theo nhân viên")
         public ResponseEntity<List<ResWorkSchedule>> getWorkSchedulesByEmployeeId(
-            @PathVariable("employeeId") Long employeeId) {
+                        @PathVariable("employeeId") Long employeeId) {
                 System.out
                                 .println(">>>WORK-SCHEDULE MODULE: Attemping to Fetch work schedules by Employee ID: "
                                                 + employeeId);
@@ -146,7 +146,7 @@ public class WorkScheduleController {
         @ApiMessage("Lấy lịch làm việc của nhân viên theo ngày")
         public ResponseEntity<List<ResWorkSchedule>> getWorkSchedulesByEmployeeIdAndWorkDate(
                         @PathVariable("employeeId") Long employeeId,
-                        @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate workDate) {
+                        @PathVariable("workDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate workDate) {
                 System.out.println(
                                 ">>>WORK-SCHEDULE MODULE: Attemping to Fetch work schedules by Employee ID and Work Date: "
                                                 + employeeId + ", " + workDate);
@@ -160,12 +160,32 @@ public class WorkScheduleController {
                 return ResponseEntity.ok(response);
         }
 
+        /**
+         * Lấy danh sách lịch làm việc của một nhân viên cụ thể trong khoảng thời gian.
+         * Endpoint này trả về thông tin chi tiết về tất cả các ca làm việc được gán
+         * cho nhân viên trong khoảng ngày từ startDate đến endDate.
+         *
+         * @param employeeId ID của nhân viên cần lấy lịch làm việc
+         * @param startDate  Ngày bắt đầu của khoảng thời gian (định dạng: yyyy-MM-dd)
+         * @param endDate    Ngày kết thúc của khoảng thời gian (định dạng: yyyy-MM-dd)
+         * @return ResponseEntity chứa ResEmpListWorkSchedule với thông tin nhân viên
+         *         và danh sách lịch làm việc trong khoảng thời gian
+         *
+         * @throws IllegalArgumentException nếu employeeId không tồn tại hoặc khoảng
+         *                                  thời gian không hợp lệ
+         *
+         *                                  <h3>Ví dụ sử dụng API:</h3>
+         * 
+         *                                  <pre>
+         * GET /api/v1/work-schedules/employee/5/date-range?startDate=2025-12-01&endDate=2025-12-31
+         *                                  </pre>
+         */
         @GetMapping("/employee/{employeeId}/date-range")
         @ApiMessage("Lấy lịch làm việc của nhân viên theo khoảng thời gian")
         public ResponseEntity<ResEmpListWorkSchedule> getWorkSchedulesByEmployeeIdAndDateRange(
                         @PathVariable("employeeId") Long employeeId,
-                        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-                        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+                        @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                        @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
                 System.out.println(
                                 ">>>WORK-SCHEDULE MODULE: Attemping to Fetch work schedules by Employee ID and Date Range: "
                                                 + employeeId + ", " + startDate + " to " + endDate);
@@ -173,8 +193,8 @@ public class WorkScheduleController {
                                 .findByEmployeeIdAndWorkDateBetween(employeeId, startDate, endDate).stream()
                                 .map(ws -> new ResWorkSchedule(ws, dayTypeService))
                                 .toList();
-                System.out
-                                .println(">>>WORK-SCHEDULE MODULE: Successfully fetched work schedules by Employee ID and Date Range: "
+                System.out.println(
+                                ">>>WORK-SCHEDULE MODULE: Successfully fetched work schedules by Employee ID and Date Range: "
                                                 + employeeId + ", " + startDate + " to " + endDate);
                 ResEmpListWorkSchedule response = new ResEmpListWorkSchedule(workSchedules.get(0).getEmployee(),
                                 startDate,
