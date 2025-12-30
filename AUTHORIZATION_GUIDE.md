@@ -71,7 +71,7 @@ Hệ thống có 2 roles mặc định được tạo tự động khi khởi đ
 
 ### 1. 👑 ADMIN (Quản Trị Viên)
 - **Mô tả**: Quản trị viên - Có toàn quyền truy cập hệ thống
-- **Permissions**: **TẤT CẢ** (~50 permissions)
+- **Permissions**: **TẤT CẢ** (54 permissions)
 - **Quyền hạn**:
   - ✅ Toàn quyền quản lý nhân viên (CRUD)
   - ✅ Toàn quyền quản lý vai trò và quyền (CRUD)
@@ -83,15 +83,17 @@ Hệ thống có 2 roles mặc định được tạo tự động khi khởi đ
 
 ### 2. 👤 EMPLOYEE (Nhân Viên)
 - **Mô tả**: Nhân viên - Quyền truy cập cơ bản
-- **Permissions**: ~20 permissions (giới hạn)
+- **Permissions**: 24 permissions (giới hạn)
 - **Quyền hạn**:
   - ✅ Đăng nhập/đăng xuất
   - ✅ Xem thông tin tài khoản cá nhân
   - ✅ Check-in/Check-out (chấm công)
+  - ✅ Xem chấm công của bản thân
   - ✅ Xem lịch làm việc của mình
   - ✅ Xem bảng lương của mình
-  - ✅ Xem danh sách nhân viên (chỉ xem)
-  - ✅ Xem ca làm việc, địa điểm làm việc
+  - ✅ Xem danh sách nhân viên active
+  - ✅ Xem ca làm việc (bao gồm tìm kiếm)
+  - ✅ Xem địa điểm làm việc
   - ❌ **KHÔNG** được tạo/sửa/xóa nhân viên
   - ❌ **KHÔNG** được quản lý roles/permissions
   - ❌ **KHÔNG** được sửa/xóa chấm công
@@ -119,16 +121,18 @@ Hệ thống có 2 roles mặc định được tạo tự động khi khởi đ
 | Cập nhật thông tin nhân viên   | `/api/v1/employees/{id}/basic-info` | PUT    | EMPLOYEE | ✅     | ❌        |
 | Xóa nhân viên                  | `/api/v1/employees/{id}`            | DELETE | EMPLOYEE | ✅     | ❌        |
 
-### ⏰ ATTENDANCE Module (7 permissions)
-| Permission Name         | API Path                        | Method | Module     | ADMIN | EMPLOYEE |
-| ----------------------- | ------------------------------- | ------ | ---------- | ----- | -------- |
-| Xem danh sách chấm công | `/api/v1/attendances`           | GET    | ATTENDANCE | ✅     | ✅        |
-| Xem chi tiết chấm công  | `/api/v1/attendances/{id}`      | GET    | ATTENDANCE | ✅     | ✅        |
-| Check-in                | `/api/v1/attendances/check-in`  | POST   | ATTENDANCE | ✅     | ✅        |
-| Check-out               | `/api/v1/attendances/check-out` | POST   | ATTENDANCE | ✅     | ✅        |
-| Tạo chấm công thủ công  | `/api/v1/attendances`           | POST   | ATTENDANCE | ✅     | ❌        |
-| Cập nhật chấm công      | `/api/v1/attendances/{id}`      | PUT    | ATTENDANCE | ✅     | ❌        |
-| Xóa chấm công           | `/api/v1/attendances/{id}`      | DELETE | ATTENDANCE | ✅     | ❌        |
+### ⏰ ATTENDANCE Module (9 permissions)
+| Permission Name                  | API Path                                  | Method | Module     | ADMIN | EMPLOYEE |
+| -------------------------------- | ----------------------------------------- | ------ | ---------- | ----- | -------- |
+| Xem danh sách chấm công          | `/api/v1/attendances`                     | GET    | ATTENDANCE | ✅     | ✅        |
+| Xem chi tiết chấm công           | `/api/v1/attendances/{id}`                | GET    | ATTENDANCE | ✅     | ✅        |
+| Check-in                         | `/api/v1/attendances/check-in`            | POST   | ATTENDANCE | ✅     | ✅        |
+| Check-out                        | `/api/v1/attendances/check-out`           | POST   | ATTENDANCE | ✅     | ✅        |
+| Xem chấm công của bản thân       | `/api/v1/attendances/my`                  | GET    | ATTENDANCE | ✅     | ✅        |
+| Xem chấm công theo lịch làm việc | `/api/v1/attendances/my/{workScheduleId}` | GET    | ATTENDANCE | ✅     | ✅        |
+| Tạo chấm công thủ công           | `/api/v1/attendances`                     | POST   | ATTENDANCE | ✅     | ❌        |
+| Cập nhật chấm công               | `/api/v1/attendances/{id}`                | PUT    | ATTENDANCE | ✅     | ❌        |
+| Xóa chấm công                    | `/api/v1/attendances/{id}`                | DELETE | ATTENDANCE | ✅     | ❌        |
 
 ### 📅 WORK_SCHEDULE Module (5 permissions)
 | Permission Name            | API Path                      | Method | Module        | ADMIN | EMPLOYEE |
@@ -139,14 +143,16 @@ Hệ thống có 2 roles mặc định được tạo tự động khi khởi đ
 | Cập nhật lịch làm việc     | `/api/v1/work-schedules/{id}` | PUT    | WORK_SCHEDULE | ✅     | ❌        |
 | Xóa lịch làm việc          | `/api/v1/work-schedules/{id}` | DELETE | WORK_SCHEDULE | ✅     | ❌        |
 
-### 🕐 SHIFT Module (5 permissions)
-| Permission Name           | API Path              | Method | Module | ADMIN | EMPLOYEE |
-| ------------------------- | --------------------- | ------ | ------ | ----- | -------- |
-| Xem danh sách ca làm việc | `/api/v1/shifts`      | GET    | SHIFT  | ✅     | ✅        |
-| Xem chi tiết ca làm việc  | `/api/v1/shifts/{id}` | GET    | SHIFT  | ✅     | ✅        |
-| Tạo ca làm việc mới       | `/api/v1/shifts`      | POST   | SHIFT  | ✅     | ❌        |
-| Cập nhật ca làm việc      | `/api/v1/shifts/{id}` | PUT    | SHIFT  | ✅     | ❌        |
-| Xóa ca làm việc           | `/api/v1/shifts/{id}` | DELETE | SHIFT  | ✅     | ❌        |
+### 🕐 SHIFT Module (7 permissions)
+| Permission Name                          | API Path                | Method | Module | ADMIN | EMPLOYEE |
+| ---------------------------------------- | ----------------------- | ------ | ------ | ----- | -------- |
+| Xem danh sách ca làm việc                | `/api/v1/shifts`        | GET    | SHIFT  | ✅     | ✅        |
+| Xem danh sách ca làm việc đang hoạt động | `/api/v1/shifts/active` | GET    | SHIFT  | ✅     | ✅        |
+| Xem chi tiết ca làm việc                 | `/api/v1/shifts/{id}`   | GET    | SHIFT  | ✅     | ✅        |
+| Tìm kiếm ca làm việc theo tên            | `/api/v1/shifts/search` | GET    | SHIFT  | ✅     | ✅        |
+| Tạo ca làm việc mới                      | `/api/v1/shifts`        | POST   | SHIFT  | ✅     | ❌        |
+| Cập nhật ca làm việc                     | `/api/v1/shifts/{id}`   | PUT    | SHIFT  | ✅     | ❌        |
+| Xóa ca làm việc                          | `/api/v1/shifts/{id}`   | DELETE | SHIFT  | ✅     | ❌        |
 
 ### 📍 WORK_SITE Module (5 permissions)
 | Permission Name                 | API Path                  | Method | Module    | ADMIN | EMPLOYEE |

@@ -32,6 +32,7 @@ public class EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final PasswordEncoder passwordEncoder;
     private final ShiftRepository shiftRepository;
+    private final RoleService roleService;
 
     private void checkUniquePhoneAndEmailForUpdate(Long id, String phone, String email) {
         if (phone != null && this.employeeRepository.existsByPhoneAndIdNot(phone, id)) {
@@ -221,6 +222,17 @@ public class EmployeeService {
         newEmp.setPhone(dto.getPhone());
         newEmp.setHiredDate(dto.getHiredDate() != null ? dto.getHiredDate() : LocalDate.now());
         newEmp.setStatus(dto.getStatus() != null ? dto.getStatus() : StatusEnum.ACTIVE);
+
+        // Tự động gán role dựa trên email
+        if ("admin@gmail.com".equals(dto.getEmail())) {
+            // Admin account - gán role ADMIN
+            roleService.findByName("ADMIN").ifPresent(newEmp::setRole);
+            System.out.println(">>>CREATE EMPLOYEE MODULE: Gán role ADMIN cho email: " + dto.getEmail());
+        } else {
+            // Các account khác - gán role EMPLOYEE
+            roleService.findByName("EMPLOYEE").ifPresent(newEmp::setRole);
+            System.out.println(">>>CREATE EMPLOYEE MODULE: Gán role EMPLOYEE cho email: " + dto.getEmail());
+        }
 
         // newEmp.setEmployeeSalaryTypes(new ArrayList<>());
         // EmployeeSalaryType empSalaryType = new

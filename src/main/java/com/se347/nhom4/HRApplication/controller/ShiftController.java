@@ -29,9 +29,9 @@ public class ShiftController {
         return ResponseEntity.ok(shiftService.createShift(dto));
     }
 
-    @PatchMapping("/{id}")
+    @PutMapping("/{id}")
     @ApiMessage("Cập nhật thông tin ca làm việc")
-    public ResponseEntity<ResShiftDTO> patchShift(
+    public ResponseEntity<ResShiftDTO> updateShift(
             @PathVariable("id") Long id,
             @RequestBody ReqShiftDTO dto) {
         System.out.println(">>>SHIFT MODULE: Updating shift with id: " + id);

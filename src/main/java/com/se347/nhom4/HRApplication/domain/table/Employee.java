@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.se347.nhom4.HRApplication.domain.requestDTO.ReqCreateEmpDTO;
 import com.se347.nhom4.HRApplication.util.SecurityUtil;
 import com.se347.nhom4.HRApplication.util.enums.SalaryTypeEnum;
@@ -52,6 +53,7 @@ public class Employee {
 
     @ManyToOne
     @JoinColumn(name = "role_id")
+    @JsonIgnoreProperties(value = { "employees", "permissions" })
     private Role role;
 
     /**

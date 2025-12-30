@@ -1,15 +1,20 @@
 package com.se347.nhom4.HRApplication.config;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import com.se347.nhom4.HRApplication.domain.table.Employee;
 import com.se347.nhom4.HRApplication.domain.table.Permission;
 import com.se347.nhom4.HRApplication.domain.table.Role;
+import com.se347.nhom4.HRApplication.repository.EmployeeRepository;
 import com.se347.nhom4.HRApplication.service.PermissionService;
 import com.se347.nhom4.HRApplication.service.RoleService;
+import com.se347.nhom4.HRApplication.util.enums.StatusEnum;
 
 import lombok.RequiredArgsConstructor;
 
@@ -23,6 +28,8 @@ public class DatabaseInitializer implements CommandLineRunner {
 
     private final PermissionService permissionService;
     private final RoleService roleService;
+    private final EmployeeRepository employeeRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) throws Exception {
@@ -42,8 +49,11 @@ public class DatabaseInitializer implements CommandLineRunner {
             initRoles();
             System.out.println(">>>DATABASE INITIALIZER: Khởi tạo roles thành công!");
         } else {
-            System.out.println(">>>DATABASE INITIALIZER: Bảng roles đã có dữ liệu ("
-                    + roleService.count() + " roles)");
+            System.out.println(">>>DATABASE INITIALIZER: Bảng roles đã có dữ liệu (" + roleService.count() + " roles)");
+
+            // Kiểm tra và tạo tài khoản admin
+            initAdminAccount();
+
         }
     }
 
@@ -70,6 +80,9 @@ public class DatabaseInitializer implements CommandLineRunner {
         createPermission("Xem chi tiết chấm công", "/api/v1/attendances/{id}", "GET", "ATTENDANCE");
         createPermission("Check-in", "/api/v1/attendances/check-in", "POST", "ATTENDANCE");
         createPermission("Check-out", "/api/v1/attendances/check-out", "POST", "ATTENDANCE");
+        createPermission("Xem chấm công của bản thân", "/api/v1/attendances/my", "GET", "ATTENDANCE");
+        createPermission("Xem chấm công theo lịch làm việc", "/api/v1/attendances/my/{workScheduleId}", "GET",
+                "ATTENDANCE");
         createPermission("Tạo chấm công thủ công", "/api/v1/attendances", "POST", "ATTENDANCE");
         createPermission("Cập nhật chấm công", "/api/v1/attendances/{id}", "PUT", "ATTENDANCE");
         createPermission("Xóa chấm công", "/api/v1/attendances/{id}", "DELETE", "ATTENDANCE");
@@ -83,7 +96,9 @@ public class DatabaseInitializer implements CommandLineRunner {
 
         // ==================== SHIFT MODULE ====================
         createPermission("Xem danh sách ca làm việc", "/api/v1/shifts", "GET", "SHIFT");
+        createPermission("Xem danh sách ca làm việc đang hoạt động", "/api/v1/shifts/active", "GET", "SHIFT");
         createPermission("Xem chi tiết ca làm việc", "/api/v1/shifts/{id}", "GET", "SHIFT");
+        createPermission("Tìm kiếm ca làm việc theo tên", "/api/v1/shifts/search", "GET", "SHIFT");
         createPermission("Tạo ca làm việc mới", "/api/v1/shifts", "POST", "SHIFT");
         createPermission("Cập nhật ca làm việc", "/api/v1/shifts/{id}", "PUT", "SHIFT");
         createPermission("Xóa ca làm việc", "/api/v1/shifts/{id}", "DELETE", "SHIFT");
@@ -168,6 +183,8 @@ public class DatabaseInitializer implements CommandLineRunner {
         addPermissionToList(employeePermissions, "Check-out");
         addPermissionToList(employeePermissions, "Xem danh sách chấm công");
         addPermissionToList(employeePermissions, "Xem chi tiết chấm công");
+        addPermissionToList(employeePermissions, "Xem chấm công của bản thân");
+        addPermissionToList(employeePermissions, "Xem chấm công theo lịch làm việc");
 
         // Xem lịch làm việc của mình
         addPermissionToList(employeePermissions, "Xem lịch làm việc");
@@ -198,6 +215,73 @@ public class DatabaseInitializer implements CommandLineRunner {
     /**
      * Helper method để thêm permission vào list theo tên
      */
+
+    /**
+     * Cập nhật role cho tài khoản admin@gmail.com
+     */
+    private void initAdminAccount() {
+        String adminEmail = "admin@gmail.com";
+
+        // Lấy role ADMIN
+        Role adminRole = roleService.findByName("ADMIN")
+                .orElseThrow(() -> new RuntimeException("Role ADMIN không tồn tại"));
+
+        // Lấy role EMPLOYEE để cập nhật cho các tài khoản khác
+        Role employeeRole = roleService.findByName("EMPLOYEE")
+                .orElseThrow(() -> new RuntimeException("Role EMPLOYEE không tồn tại"));
+
+        // Kiểm tra và cập nhật role cho admin@gmail.com
+        employeeRepository.findByEmail(adminEmail).ifPresentOrElse(
+                admin -> {
+                    if (admin.getRole() == null || !admin.getRole().getName().equals("ADMIN")) {
+                        admin.setRole(adminRole);
+                        employeeRepository.save(admin);
+                        System.out.println(">>>DATABASE INITIALIZER: Đã cập nhật role ADMIN cho: " + adminEmail);
+                    } else {
+                        System.out.println(">>>DATABASE INITIALIZER: Tài khoản " + adminEmail + " đã có role ADMIN");
+                    }
+                },
+                () -> {
+                    // Tài khoản chưa tồn tại, tạo mới
+                    System.out.println(">>>DATABASE INITIALIZER: Đang tạo tài khoản admin...");
+                    Employee admin = new Employee();
+                    admin.setFullname("Administrator");
+                    admin.setEmail(adminEmail);
+                    admin.setPassword(passwordEncoder.encode("admin123"));
+                    admin.setPhone("0000000000");
+                    admin.setHiredDate(LocalDate.now());
+                    admin.setStatus(StatusEnum.ACTIVE);
+                    admin.setRole(adminRole);
+                    admin.setEmployeeSalaryTypes(new ArrayList<>());
+                    admin.setMonthlySalaries(new ArrayList<>());
+                    admin.setShiftRates(new ArrayList<>());
+                    admin.setShiftOtRates(new ArrayList<>());
+                    admin.setEmployeePenalties(new ArrayList<>());
+                    admin.setAttendancePenalties(new ArrayList<>());
+
+                    employeeRepository.save(admin);
+                    System.out.println("  ✓ Đã tạo tài khoản admin:");
+                    System.out.println("    - Email: " + adminEmail);
+                    System.out.println("    - Password: admin123");
+                    System.out.println("    - Role: ADMIN");
+                });
+
+        // Cập nhật role EMPLOYEE cho các tài khoản khác (nếu chưa có role)
+        List<Employee> employeesWithoutRole = employeeRepository.findAll().stream()
+                .filter(emp -> emp.getRole() == null && !emp.getEmail().equals(adminEmail))
+                .toList();
+
+        if (!employeesWithoutRole.isEmpty()) {
+            System.out
+                    .println(">>>DATABASE INITIALIZER: Đang cập nhật role EMPLOYEE cho các tài khoản chưa có role...");
+            for (Employee emp : employeesWithoutRole) {
+                emp.setRole(employeeRole);
+                employeeRepository.save(emp);
+                System.out.println("  ✓ Đã cập nhật role EMPLOYEE cho: " + emp.getEmail());
+            }
+        }
+    }
+
     private void addPermissionToList(List<Permission> permissionList, String permissionName) {
         permissionService.findByName(permissionName).ifPresent(permissionList::add);
     }
