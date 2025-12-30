@@ -61,6 +61,14 @@ public class Attendance {
     @Column(name = "late_time")
     private Integer lateTime;
 
+    /**
+     * Thời gian về sớm (phút).
+     * Được tính khi check-out trước giờ kết thúc ca quy định.
+     * Ví dụ: Ca kết thúc 16:00, check-out 15:30 → earlyLeave = 30 phút
+     */
+    @Column(name = "early_leave")
+    private Integer earlyLeave;
+
     // ==========================
     // GPS - vị trí lúc check-out
     // ==========================

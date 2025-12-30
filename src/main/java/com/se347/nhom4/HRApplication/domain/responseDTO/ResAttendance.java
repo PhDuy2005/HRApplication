@@ -20,6 +20,7 @@ public class ResAttendance {
     private Integer totalWorkTime;
     private Integer overtime;
     private Integer lateTime;
+    private Integer earlyLeave;
 
     // GPS check-in
     private Double checkInLat;
