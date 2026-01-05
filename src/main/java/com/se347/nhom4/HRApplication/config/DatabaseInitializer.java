@@ -118,6 +118,8 @@ public class DatabaseInitializer implements CommandLineRunner {
         createPermission("Kiểm tra lịch làm việc tồn tại", "/api/v1/work-schedules/exists", "GET", "WORK_SCHEDULE");
         createPermission("Tạo lịch làm việc", "/api/v1/work-schedules", "POST", "WORK_SCHEDULE");
         createPermission("Cập nhật lịch làm việc", "/api/v1/work-schedules/{id}", "PUT", "WORK_SCHEDULE");
+        createPermission("Xem lịch làm việc theo ca theo tuần (Tối ưu)", "/api/v2/work-schedules/weekly-by-shift",
+                "GET", "WORK_SCHEDULE");
         createPermission("Xóa lịch làm việc", "/api/v1/work-schedules/{id}", "DELETE", "WORK_SCHEDULE");
 
         // ==================== SHIFT MODULE ====================
@@ -216,6 +218,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         // Xem lịch làm việc của mình
         addPermissionToList(employeePermissions, "Xem lịch làm việc");
         addPermissionToList(employeePermissions, "Xem chi tiết lịch làm việc");
+        addPermissionToList(employeePermissions, "Xem lịch làm việc theo ca theo tuần (Tối ưu)");
 
         // Xem ca làm việc
         addPermissionToList(employeePermissions, "Xem danh sách ca làm việc");
@@ -363,6 +366,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             addPermissionToList(employeePermissions, "Xem lịch làm việc nhân viên theo ngày");
             addPermissionToList(employeePermissions, "Xem lịch làm việc nhân viên theo khoảng thời gian");
             addPermissionToList(employeePermissions, "Kiểm tra lịch làm việc tồn tại");
+            addPermissionToList(employeePermissions, "Xem lịch làm việc theo ca theo tuần (Tối ưu)");
 
             // Xem ca làm việc
             addPermissionToList(employeePermissions, "Xem danh sách ca làm việc");

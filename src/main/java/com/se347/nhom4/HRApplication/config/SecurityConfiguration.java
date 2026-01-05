@@ -116,7 +116,10 @@ public class SecurityConfiguration {
                 "/swagger-ui.html",
 
                 // Static resources
-                "/storage/**"
+                "/storage/**",
+
+                // Permission endpoints - không cần authentication
+                "/api/v1/permissions/**"
         };
         http
                 .csrf(c -> c.disable())

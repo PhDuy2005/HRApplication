@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.se347.nhom4.HRApplication.domain.table.Permission;
 import com.se347.nhom4.HRApplication.domain.table.Role;
 import com.se347.nhom4.HRApplication.repository.RoleRepository;
 
@@ -113,5 +114,20 @@ public class RoleService {
     @Transactional
     public Role save(Role role) {
         return roleRepository.save(role);
+    }
+
+    public Optional<Role> addPermissionIntoRole(Role role, Permission permission) {
+        Role dbRole = roleRepository.findById(role.getId()).orElse(null);
+        if (dbRole == null) {
+            return Optional.empty();
+        }
+
+        List<Permission> permissions = dbRole.getPermissions();
+        permissions.add(permission);
+        // Role dbRole = roleRepository.findById(role.getId()).orElse(null);
+
+        dbRole.setPermissions(permissions);
+        roleRepository.save(dbRole);
+        return Optional.of(dbRole);
     }
 }
