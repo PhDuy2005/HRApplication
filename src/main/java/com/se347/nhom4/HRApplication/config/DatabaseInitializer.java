@@ -97,6 +97,8 @@ public class DatabaseInitializer implements CommandLineRunner {
         createPermission("Tạo chấm công thủ công", "/api/v1/attendances", "POST", "ATTENDANCE");
         createPermission("Cập nhật chấm công", "/api/v1/attendances/{id}", "PUT", "ATTENDANCE");
         createPermission("Xóa chấm công", "/api/v1/attendances/{id}", "DELETE", "ATTENDANCE");
+        createPermission("Xem tổng hợp chấm công theo tuần", "/api/v2/attendances/weekly-summary", "GET",
+                "ATTENDANCE");
 
         // ==================== WORK SCHEDULE MODULE ====================
         createPermission("Xem lịch làm việc", "/api/v1/work-schedules", "GET", "WORK_SCHEDULE");
@@ -209,6 +211,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         addPermissionToList(employeePermissions, "Xem chi tiết chấm công");
         addPermissionToList(employeePermissions, "Xem chấm công của bản thân");
         addPermissionToList(employeePermissions, "Xem chấm công theo lịch làm việc");
+        addPermissionToList(employeePermissions, "Xem tổng hợp chấm công theo tuần");
 
         // Xem lịch làm việc của mình
         addPermissionToList(employeePermissions, "Xem lịch làm việc");
@@ -348,6 +351,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             addPermissionToList(employeePermissions, "Xem chi tiết chấm công");
             addPermissionToList(employeePermissions, "Xem chấm công của bản thân");
             addPermissionToList(employeePermissions, "Xem chấm công theo lịch làm việc");
+            addPermissionToList(employeePermissions, "Xem tổng hợp chấm công theo tuần");
 
             // Xem lịch làm việc
             addPermissionToList(employeePermissions, "Xem lịch làm việc");

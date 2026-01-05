@@ -6,7 +6,10 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,11 +17,13 @@ import org.springframework.transaction.annotation.Transactional;
 import com.se347.nhom4.HRApplication.domain.requestDTO.ReqCheckIn;
 import com.se347.nhom4.HRApplication.domain.requestDTO.ReqCheckOut;
 import com.se347.nhom4.HRApplication.domain.responseDTO.ResAttendance;
+import com.se347.nhom4.HRApplication.domain.responseDTO.ResWeeklySummary;
 import com.se347.nhom4.HRApplication.domain.table.Attendance;
 import com.se347.nhom4.HRApplication.domain.table.Employee;
 import com.se347.nhom4.HRApplication.domain.table.WorkSchedule;
 import com.se347.nhom4.HRApplication.domain.table.WorkSite;
 import com.se347.nhom4.HRApplication.repository.AttendanceRepository;
+import com.se347.nhom4.HRApplication.repository.EmployeeRepository;
 import com.se347.nhom4.HRApplication.repository.WorkScheduleRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -29,6 +34,7 @@ public class AttendanceService {
 
     private final AttendanceRepository attendanceRepository;
     private final WorkScheduleRepository workScheduleRepository;
+    private final EmployeeRepository employeeRepository;
 
     private static final ZoneId VN_TZ = ZoneId.of("Asia/Ho_Chi_Minh");
 
@@ -331,5 +337,144 @@ public class AttendanceService {
             double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             return (int) Math.round(EARTH_RADIUS_METERS * c);
         }
+    }
+
+    // =========================
+    // WEEKLY SUMMARY API
+    // =========================
+
+    /**
+     * Lấy weekly summary cho tất cả nhân viên active trong khoảng thời gian
+     */
+    public ResWeeklySummary getWeeklySummary(LocalDate startDate, LocalDate endDate) {
+        // 1. Lấy tất cả nhân viên active
+        List<Employee> activeEmployees = employeeRepository.findByStatus(
+                com.se347.nhom4.HRApplication.util.enums.StatusEnum.ACTIVE);
+
+        // 2. Lấy tất cả work schedules trong khoảng thời gian
+        List<WorkSchedule> allSchedules = workScheduleRepository.findByWorkDateBetween(startDate, endDate);
+
+        // 3. Lấy tất cả attendances trong khoảng thời gian
+        List<Attendance> allAttendances = attendanceRepository.findByWorkDateBetween(startDate, endDate);
+
+        // 4. Group schedules và attendances theo employeeId
+        Map<Long, List<WorkSchedule>> schedulesByEmployee = allSchedules.stream()
+                .collect(Collectors.groupingBy(ws -> ws.getEmployee().getId()));
+
+        Map<Long, List<Attendance>> attendancesByEmployee = allAttendances.stream()
+                .collect(Collectors.groupingBy(att -> att.getEmployee().getId()));
+
+        // 5. Tạo summary cho từng nhân viên
+        List<ResWeeklySummary.EmployeeSummary> employeeSummaries = activeEmployees.stream()
+                .map(emp -> buildEmployeeSummary(
+                        emp,
+                        schedulesByEmployee.getOrDefault(emp.getId(), List.of()),
+                        attendancesByEmployee.getOrDefault(emp.getId(), List.of())))
+                .collect(Collectors.toList());
+
+        return ResWeeklySummary.builder()
+                .startDate(startDate)
+                .endDate(endDate)
+                .employees(employeeSummaries)
+                .build();
+    }
+
+    private ResWeeklySummary.EmployeeSummary buildEmployeeSummary(
+            Employee employee,
+            List<WorkSchedule> schedules,
+            List<Attendance> attendances) {
+
+        // Map attendances by workScheduleId
+        Map<Long, Attendance> attendanceMap = attendances.stream()
+                .filter(att -> att.getWorkSchedule() != null)
+                .collect(Collectors.toMap(
+                        att -> att.getWorkSchedule().getId(),
+                        att -> att,
+                        (a1, a2) -> a1));
+
+        int totalScheduled = schedules.size();
+        int workedCount = 0;
+        int totalWorkedMinutes = 0;
+        int absentCount = 0;
+        int absentHours = 0;
+        int lateCount = 0;
+        int totalLateMinutes = 0;
+        int earlyLeaveCount = 0;
+        int totalEarlyLeaveMinutes = 0;
+        int overtimeCount = 0;
+        int totalOvertimeMinutes = 0;
+
+        for (WorkSchedule schedule : schedules) {
+            Attendance attendance = attendanceMap.get(schedule.getId());
+
+            if (attendance != null && attendance.getCheckIn() != null && attendance.getCheckOut() != null) {
+                // Đã chấm công
+                workedCount++;
+
+                // Tính total work time
+                if (attendance.getTotalWorkTime() != null) {
+                    totalWorkedMinutes += attendance.getTotalWorkTime();
+                }
+
+                // Tính late
+                if (attendance.getLateTime() != null && attendance.getLateTime() > 0) {
+                    lateCount++;
+                    totalLateMinutes += attendance.getLateTime();
+                }
+
+                // Tính early leave
+                if (attendance.getEarlyLeave() != null && attendance.getEarlyLeave() > 0) {
+                    earlyLeaveCount++;
+                    totalEarlyLeaveMinutes += attendance.getEarlyLeave();
+                }
+
+                // Tính overtime
+                if (attendance.getOvertime() != null && attendance.getOvertime() > 0) {
+                    overtimeCount++;
+                    totalOvertimeMinutes += attendance.getOvertime();
+                }
+            } else {
+                // Vắng mặt
+                absentCount++;
+                if (schedule.getShift() != null && schedule.getShift().getStandardHours() != null) {
+                    absentHours += schedule.getShift().getStandardHours();
+                }
+            }
+        }
+
+        // Build statistics
+        ResWeeklySummary.Statistics statistics = ResWeeklySummary.Statistics.builder()
+                .totalScheduled(totalScheduled)
+                .worked(ResWeeklySummary.WorkedStats.builder()
+                        .count(workedCount)
+                        .totalHours(totalWorkedMinutes / 60)
+                        .build())
+                .absent(ResWeeklySummary.AbsentStats.builder()
+                        .count(absentCount)
+                        .totalHours(absentHours)
+                        .build())
+                .late(ResWeeklySummary.LateStats.builder()
+                        .count(lateCount)
+                        .totalMinutes(totalLateMinutes)
+                        .build())
+                .earlyLeave(ResWeeklySummary.EarlyLeaveStats.builder()
+                        .count(earlyLeaveCount)
+                        .totalMinutes(totalEarlyLeaveMinutes)
+                        .build())
+                .overtime(ResWeeklySummary.OvertimeStats.builder()
+                        .count(overtimeCount)
+                        .totalMinutes(totalOvertimeMinutes)
+                        .build())
+                .build();
+
+        return ResWeeklySummary.EmployeeSummary.builder()
+                .employee(ResWeeklySummary.Employee.builder()
+                        .id(employee.getId())
+                        .fullname(employee.getFullname())
+                        .email(employee.getEmail())
+                        .department(null) // TODO: Add department if exists
+                        .build())
+                .statistics(statistics)
+                .build();
     }
 }
