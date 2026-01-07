@@ -54,6 +54,19 @@ public class PayrollController {
     }
 
     /**
+     * Lấy danh sách bảng lương theo nhân viên
+     * GET /api/v1/salaries/employee/{empId}
+     */
+    @GetMapping("/employee/{empId}")
+    @ApiMessage("Lấy danh sách bảng lương của nhân viên")
+    public ResponseEntity<List<ResPayroll>> getPayrollsByEmployee(@PathVariable("empId") Long employeeId) {
+        List<ResPayroll> payrolls = payrollService.findByEmployeeId(employeeId).stream()
+                .map(ResPayroll::new)
+                .toList();
+        return ResponseEntity.ok(payrolls);
+    }
+
+    /**
      * Tính lương cho nhân viên theo tháng/năm
      * POST /api/v1/salaries/calculate?employeeId=1&month=12&year=2025
      */

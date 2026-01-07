@@ -31,7 +31,10 @@ public class PermissionInterceptorConfiguration implements WebMvcConfigurer {
                 "/swagger-ui.html",
 
                 // Static resources
-                "/storage/**"
+                "/storage/**",
+
+                // Permission endpoints - không cần kiểm tra permission
+                "/api/v1/permissions/**"
         };
         registry.addInterceptor(getPermissionInterceptor())
                 .excludePathPatterns(whiteList);

@@ -155,6 +155,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         // ==================== SALARY MODULE ====================
         createPermission("Xem bảng lương", "/api/v1/salaries", "GET", "SALARY");
         createPermission("Xem chi tiết lương", "/api/v1/salaries/{id}", "GET", "SALARY");
+        createPermission("Xem lương theo nhân viên", "/api/v1/salaries/employee/{empId}", "GET", "SALARY");
         createPermission("Tính lương", "/api/v1/salaries/calculate", "POST", "SALARY");
         createPermission("Cập nhật lương", "/api/v1/salaries/{id}", "PUT", "SALARY");
 
@@ -231,6 +232,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         // Xem lương của mình
         addPermissionToList(employeePermissions, "Xem bảng lương");
         addPermissionToList(employeePermissions, "Xem chi tiết lương");
+        addPermissionToList(employeePermissions, "Xem lương theo nhân viên");
 
         Role employeeRole = new Role();
         employeeRole.setName("EMPLOYEE");
@@ -381,6 +383,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             // Xem lương
             addPermissionToList(employeePermissions, "Xem bảng lương");
             addPermissionToList(employeePermissions, "Xem chi tiết lương");
+            addPermissionToList(employeePermissions, "Xem lương theo nhân viên");
 
             employeeRole.setPermissions(employeePermissions);
             roleService.save(employeeRole);
