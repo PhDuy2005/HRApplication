@@ -36,7 +36,7 @@ public class ResEmployeeInfo {
     StatusEnum status;
 
     // // Role info
-    // RoleInfo role;
+    RoleInfo role;
 
     // Salary type hiện tại
     SalaryTypeInfo currentSalaryType;
