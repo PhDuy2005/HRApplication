@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.se347.nhom4.HRApplication.domain.responseDTO.ResPayroll;
 import com.se347.nhom4.HRApplication.domain.table.Payroll;
 import com.se347.nhom4.HRApplication.service.PayrollService;
 import com.se347.nhom4.HRApplication.util.annotation.ApiMessage;
@@ -32,8 +33,11 @@ public class PayrollController {
      */
     @GetMapping
     @ApiMessage("Lấy danh sách bảng lương")
-    public ResponseEntity<List<Payroll>> getAllPayrolls() {
-        return ResponseEntity.ok(payrollService.findAll());
+    public ResponseEntity<List<ResPayroll>> getAllPayrolls() {
+        List<ResPayroll> payrolls = payrollService.findAll().stream()
+                .map(ResPayroll::new)
+                .toList();
+        return ResponseEntity.ok(payrolls);
     }
 
     /**
@@ -42,8 +46,9 @@ public class PayrollController {
      */
     @GetMapping("/{id}")
     @ApiMessage("Lấy chi tiết bảng lương")
-    public ResponseEntity<Payroll> getPayrollById(@PathVariable Long id) {
+    public ResponseEntity<ResPayroll> getPayrollById(@PathVariable Long id) {
         return payrollService.findById(id)
+                .map(ResPayroll::new)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -54,12 +59,12 @@ public class PayrollController {
      */
     @PostMapping("/calculate")
     @ApiMessage("Tính lương cho nhân viên")
-    public ResponseEntity<Payroll> calculateSalary(
+    public ResponseEntity<ResPayroll> calculateSalary(
             @RequestParam("employeeId") Long employeeId,
             @RequestParam("month") Integer month,
             @RequestParam("year") Integer year) {
         Payroll payroll = payrollService.calculateSalary(employeeId, month, year);
-        return ResponseEntity.ok(payroll);
+        return ResponseEntity.ok(new ResPayroll(payroll));
     }
 
     /**
@@ -68,11 +73,11 @@ public class PayrollController {
      */
     @PutMapping("/{id}")
     @ApiMessage("Cập nhật bảng lương")
-    public ResponseEntity<Payroll> updatePayroll(
+    public ResponseEntity<ResPayroll> updatePayroll(
             @PathVariable Long id,
             @RequestBody Payroll payroll) {
         Payroll updated = payrollService.updatePayroll(id, payroll);
-        return ResponseEntity.ok(updated);
+        return ResponseEntity.ok(new ResPayroll(updated));
     }
 
     /**
