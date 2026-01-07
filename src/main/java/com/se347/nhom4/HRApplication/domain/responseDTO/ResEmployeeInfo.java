@@ -61,11 +61,11 @@ public class ResEmployeeInfo {
         this.hiredDate = employee.getHiredDate();
         this.status = employee.getStatus();
 
-        // // Role
-        // if (employee.getRole() != null) {
-        // this.role = new RoleInfo(employee.getRole().getId(),
-        // employee.getRole().getName());
-        // }
+        // Role
+        if (employee.getRole() != null) {
+            this.role = new RoleInfo(employee.getRole().getId(),
+                    employee.getRole().getName());
+        }
 
         // Current salary type
         // EmployeeSalaryType currentSalaryType = employee.getCurrentSalaryType();
