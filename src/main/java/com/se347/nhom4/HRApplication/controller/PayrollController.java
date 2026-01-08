@@ -81,6 +81,53 @@ public class PayrollController {
     }
 
     /**
+     * Tính lương cho toàn bộ nhân viên theo tháng/năm
+     * POST /api/v1/salaries/calculate/all?month=12&year=2025
+     */
+    @PostMapping("/calculate/all")
+    @ApiMessage("Tính lương cho toàn bộ nhân viên")
+    public ResponseEntity<List<ResPayroll>> calculateSalaryForAll(
+            @RequestParam("month") Integer month,
+            @RequestParam("year") Integer year) {
+        List<Payroll> payrolls = payrollService.calculateSalaryForAll(month, year);
+        List<ResPayroll> response = payrolls.stream()
+                .map(ResPayroll::new)
+                .toList();
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Tính toán lại lương cho nhân viên theo tháng/năm (xóa bảng lương cũ và tính
+     * lại)
+     * POST /api/v1/salaries/recalculate?employeeId=1&month=12&year=2025
+     */
+    @PostMapping("/recalculate")
+    @ApiMessage("Tính toán lại lương cho nhân viên")
+    public ResponseEntity<ResPayroll> recalculateSalary(
+            @RequestParam("employeeId") Long employeeId,
+            @RequestParam("month") Integer month,
+            @RequestParam("year") Integer year) {
+        Payroll payroll = payrollService.recalculateSalary(employeeId, month, year);
+        return ResponseEntity.ok(new ResPayroll(payroll));
+    }
+
+    /**
+     * Tính toán lại lương cho toàn bộ nhân viên theo tháng/năm
+     * POST /api/v1/salaries/recalculate/all?month=12&year=2025
+     */
+    @PostMapping("/recalculate/all")
+    @ApiMessage("Tính toán lại lương cho toàn bộ nhân viên")
+    public ResponseEntity<List<ResPayroll>> recalculateSalaryForAll(
+            @RequestParam("month") Integer month,
+            @RequestParam("year") Integer year) {
+        List<Payroll> payrolls = payrollService.recalculateSalaryForAll(month, year);
+        List<ResPayroll> response = payrolls.stream()
+                .map(ResPayroll::new)
+                .toList();
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * Cập nhật bảng lương
      * PUT /api/v1/salaries/{id}
      */

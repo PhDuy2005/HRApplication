@@ -70,14 +70,51 @@ public class PayrollService {
     }
 
     /**
-     * Tính lương cho nhân viên
+     * Tính lương cho toàn bộ nhân viên trong tháng/năm
+     */
+    @Transactional
+    public List<Payroll> calculateSalaryForAll(Integer month, Integer year) {
+        // Lấy tất cả nhân viên
+        List<Employee> employees = employeeRepository.findAll();
+
+        // Tính lương cho từng nhân viên
+        return employees.stream()
+                .map(employee -> calculateSalary(employee.getId(), month, year))
+                .toList();
+    }
+
+    /**
+     * Tính toán lại lương cho nhân viên (xóa bảng lương cũ và tính lại)
+     */
+    @Transactional
+    public Payroll recalculateSalary(Long employeeId, Integer month, Integer year) {
+        // Xóa bảng lương cũ nếu có
+        Optional<Payroll> existingPayroll = payrollRepository.findByEmployee_IdAndMonthAndYear(employeeId, month, year);
+        existingPayroll.ifPresent(payroll -> payrollRepository.delete(payroll));
+
+        // Tính lương mới từ đầu
+        return calculateSalaryFromScratch(employeeId, month, year);
+    }
+
+    /**
+     * Tính toán lại lương cho toàn bộ nhân viên trong tháng/năm
+     */
+    @Transactional
+    public List<Payroll> recalculateSalaryForAll(Integer month, Integer year) {
+        // Lấy tất cả nhân viên
+        List<Employee> employees = employeeRepository.findAll();
+
+        // Tính toán lại lương cho từng nhân viên
+        return employees.stream()
+                .map(employee -> recalculateSalary(employee.getId(), month, year))
+                .toList();
+    }
+
+    /**
+     * Tính lương cho nhân viên (nếu đã có thì trả về, nếu chưa thì tính mới)
      */
     @Transactional
     public Payroll calculateSalary(Long employeeId, Integer month, Integer year) {
-
-        // Lấy thông tin nhân viên
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên với ID: " + employeeId));
         // 1. Kiểm tra nếu đã có bảng lương cho nhân viên trong tháng/năm này, nếu có
         // thì trả về bảng lương đó
         Optional<Payroll> existingPayroll = payrollRepository.findByEmployee_IdAndMonthAndYear(employeeId, month, year);
@@ -85,7 +122,20 @@ public class PayrollService {
             return existingPayroll.get();
         }
 
-        // 2.1. Lấy thông tin List<chấm công> từ tháng/năm
+        // 2. Nếu chưa có thì tính mới
+        return calculateSalaryFromScratch(employeeId, month, year);
+    }
+
+    /**
+     * Tính lương cho nhân viên từ đầu (không kiểm tra bảng lương cũ)
+     */
+    @Transactional
+    public Payroll calculateSalaryFromScratch(Long employeeId, Integer month, Integer year) {
+        // Lấy thông tin nhân viên
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên với ID: " + employeeId));
+
+        // 1. Lấy thông tin List<chấm công> từ tháng/năm
         YearMonth yearMonth = YearMonth.of(year, month);
         LocalDate startDate = yearMonth.atDay(1);
         LocalDate endDate = yearMonth.atEndOfMonth();
@@ -101,7 +151,7 @@ public class PayrollService {
 
         Instant now = Instant.now();
 
-        // 2.2. Với mỗi chấm công, tính toán lương
+        // 2. Với mỗi chấm công, tính toán lương
         for (Attendance attendance : attendances) {
             if (attendance.getCheckIn() == null || attendance.getCheckOut() == null) {
                 continue; // Bỏ qua nếu chưa hoàn thành check-in/check-out
@@ -125,11 +175,11 @@ public class PayrollService {
                 continue; // Bỏ qua nếu không tìm thấy shift rate
             }
 
-            // 2.3. Tính số giờ làm việc (totalWorkTime đang tính bằng phút)
+            // 3. Tính số giờ làm việc (totalWorkTime đang tính bằng phút)
             Integer workTimeMinutes = attendance.getTotalWorkTime() != null ? attendance.getTotalWorkTime() : 0;
             double workHours = workTimeMinutes / 60.0;
 
-            // 2.4. Tính lương ca làm việc
+            // 4. Tính lương ca làm việc
             long hourlyRate = shiftRate.getBaseRate();
             BigDecimal rateMultiplier = shiftRate.getRateMultiplier();
             long shiftAmount = (long) (hourlyRate * rateMultiplier.doubleValue() * workHours);
@@ -137,7 +187,7 @@ public class PayrollService {
             totalHour += workTimeMinutes;
             shiftSalary += shiftAmount;
 
-            // 2.5 & 2.6. Nếu có làm thêm giờ, tính lương OT
+            // 5. Nếu có làm thêm giờ, tính lương OT
             Integer overtimeMinutes = attendance.getOvertime() != null ? attendance.getOvertime() : 0;
             if (overtimeMinutes > 0) {
                 double otHours = overtimeMinutes / 60.0;
@@ -156,10 +206,10 @@ public class PayrollService {
         totalHour = totalHour / 60;
         totalOtHour = totalOtHour / 60;
 
-        // 3. Tính final salary
+        // 6. Tính final salary
         long finalSalary = shiftSalary + otSalary;
 
-        // 4. Lưu bảng lương mới vào database
+        // 7. Lưu bảng lương mới vào database
         Payroll payroll = Payroll.builder()
                 .employee(employee)
                 .month(month)
