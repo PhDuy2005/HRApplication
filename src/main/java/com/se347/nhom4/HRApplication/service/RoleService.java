@@ -116,6 +116,11 @@ public class RoleService {
         return roleRepository.save(role);
     }
 
+    /**
+     * Thêm permission vào role
+     * Chỉ thêm nếu permission chưa tồn tại trong role
+     */
+    @Transactional
     public Optional<Role> addPermissionIntoRole(Role role, Permission permission) {
         Role dbRole = roleRepository.findById(role.getId()).orElse(null);
         if (dbRole == null) {
@@ -123,11 +128,24 @@ public class RoleService {
         }
 
         List<Permission> permissions = dbRole.getPermissions();
-        permissions.add(permission);
-        // Role dbRole = roleRepository.findById(role.getId()).orElse(null);
 
+        // Kiểm tra xem permission đã tồn tại trong role chưa
+        boolean permissionExists = permissions.stream()
+                .anyMatch(p -> p.getId().equals(permission.getId()));
+
+        if (permissionExists) {
+            System.out.println(">>>ROLE SERVICE: Permission đã tồn tại trong role, không cần thêm");
+            return Optional.of(dbRole);
+        }
+
+        // Thêm permission mới vào list
+        permissions.add(permission);
         dbRole.setPermissions(permissions);
-        roleRepository.save(dbRole);
-        return Optional.of(dbRole);
+
+        Role savedRole = roleRepository.save(dbRole);
+        System.out.println(
+                ">>>ROLE SERVICE: Đã thêm permission ID " + permission.getId() + " vào role ID " + dbRole.getId());
+
+        return Optional.of(savedRole);
     }
 }

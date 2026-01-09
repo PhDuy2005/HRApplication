@@ -4,10 +4,12 @@ import com.se347.nhom4.HRApplication.domain.requestDTO.ReqShiftDTO;
 import com.se347.nhom4.HRApplication.domain.responseDTO.ResShiftDTO;
 import com.se347.nhom4.HRApplication.domain.table.Shift;
 import com.se347.nhom4.HRApplication.repository.ShiftRepository;
+import com.se347.nhom4.HRApplication.repository.WorkScheduleRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -17,9 +19,11 @@ import java.util.stream.Collectors;
 public class ShiftService {
 
     private final ShiftRepository shiftRepository;
+    private final WorkScheduleRepository workScheduleRepository;
 
-    public ShiftService(ShiftRepository shiftRepository) {
+    public ShiftService(ShiftRepository shiftRepository, WorkScheduleRepository workScheduleRepository) {
         this.shiftRepository = shiftRepository;
+        this.workScheduleRepository = workScheduleRepository;
     }
 
     // ================== HELPER ==================
@@ -68,6 +72,14 @@ public class ShiftService {
                 calculateStandardHours(shift.getStartTime(), shift.getEndTime()));
 
         return shift;
+    }
+
+    public ResShiftDTO activateShift(Long id) {
+        Shift shift = shiftRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Shift not found with id: " + id));
+        shift.setIsActive(true);
+        Shift saved = shiftRepository.save(shift);
+        return toResDTO(saved);
     }
 
     // ================== CRUD ==================
@@ -119,11 +131,27 @@ public class ShiftService {
     }
 
     // Xóa ca (soft delete: disable)
-    public void deactivateShift(Long id) {
+    public ResShiftDTO deactivateShift(Long id) {
         Shift shift = shiftRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Shift not found with id: " + id));
+
+        // Kiểm tra xem có còn WorkSchedule nào có ngày làm việc > hôm nay tham chiếu
+        // đến ca này không
+        LocalDate today = LocalDate.now();
+        List<com.se347.nhom4.HRApplication.domain.table.WorkSchedule> futureSchedules = workScheduleRepository
+                .findByShiftId(id).stream()
+                .filter(ws -> ws.getWorkDate().isAfter(today))
+                .toList();
+
+        if (!futureSchedules.isEmpty()) {
+            throw new IllegalStateException(
+                    "Không thể vô hiệu hóa ca này. Còn " + futureSchedules.size() +
+                            " lịch làm việc trong tương lai đang sử dụng ca này.");
+        }
+
         shift.setIsActive(false);
-        shiftRepository.save(shift);
+        Shift saved = shiftRepository.save(shift);
+        return toResDTO(saved);
     }
 
     // Lấy tất cả ca

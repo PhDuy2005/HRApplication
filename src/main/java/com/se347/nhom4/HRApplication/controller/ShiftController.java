@@ -29,6 +29,21 @@ public class ShiftController {
         return ResponseEntity.ok(shiftService.createShift(dto));
     }
 
+    /**
+     * Kích hoạt lại ca làm việc đã bị vô hiệu hóa.
+     * Đặt lại trạng thái isActive = true cho ca làm việc.
+     * 
+     * @param id ID của ca làm việc cần kích hoạt
+     * @return ResponseEntity chứa thông tin ca làm việc đã được kích hoạt
+     * @throws IllegalArgumentException nếu không tìm thấy ca làm việc với ID đã cho
+     */
+    @PostMapping("/activate/{id}")
+    @ApiMessage("Kích hoạt ca làm việc")
+    public ResponseEntity<ResShiftDTO> activateShift(@PathVariable("id") Long id) {
+        System.out.println(">>>SHIFT MODULE: Activating shift with id: " + id);
+        return ResponseEntity.ok(shiftService.activateShift(id));
+    }
+
     @PutMapping("/{id}")
     @ApiMessage("Cập nhật thông tin ca làm việc")
     public ResponseEntity<ResShiftDTO> updateShift(
@@ -38,12 +53,24 @@ public class ShiftController {
         return ResponseEntity.ok(shiftService.updateShift(id, dto));
     }
 
+    /**
+     * Vô hiệu hóa ca làm việc (soft delete).
+     * Đặt trạng thái isActive = false cho ca làm việc.
+     * Kiểm tra xem có còn WorkSchedule nào có ngày làm việc trong tương lai (> hôm
+     * nay)
+     * đang tham chiếu đến ca này hay không. Nếu có, không cho phép vô hiệu hóa.
+     * 
+     * @param id ID của ca làm việc cần vô hiệu hóa
+     * @return ResponseEntity chứa thông tin ca làm việc đã được vô hiệu hóa
+     * @throws IllegalArgumentException nếu không tìm thấy ca làm việc với ID đã cho
+     * @throws IllegalStateException    nếu còn lịch làm việc tương lai đang sử dụng
+     *                                  ca này
+     */
     @DeleteMapping("/{id}")
     @ApiMessage("Vô hiệu hóa ca làm việc")
-    public ResponseEntity<Void> deactivateShift(@PathVariable Long id) {
+    public ResponseEntity<ResShiftDTO> deactivateShift(@PathVariable("id") Long id) {
         System.out.println(">>>SHIFT MODULE: Deactivating shift with id: " + id);
-        shiftService.deactivateShift(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(shiftService.deactivateShift(id));
     }
 
     @GetMapping
