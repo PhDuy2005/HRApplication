@@ -1,6 +1,7 @@
 package com.se347.nhom4.HRApplication.service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import com.se347.nhom4.HRApplication.domain.responseDTO.ResWeeklyByShift;
 import com.se347.nhom4.HRApplication.domain.table.Attendance;
+import com.se347.nhom4.HRApplication.domain.table.Shift;
 import com.se347.nhom4.HRApplication.domain.table.WorkSchedule;
 import com.se347.nhom4.HRApplication.domain.table.WorkSite;
 import com.se347.nhom4.HRApplication.repository.AttendanceRepository;
@@ -146,6 +148,25 @@ public class WorkScheduleService {
                 workSchedule.getEmployee() != null ? workSchedule.getEmployee().getId() : null,
                 workSchedule.getWorkDate());
 
+        if (workSchedule.getEmployee() == null || workSchedule.getEmployee().getId() == null) {
+            throw new IllegalArgumentException("employee.id is required");
+        }
+        if (workSchedule.getShift() == null || workSchedule.getShift().getId() == null) {
+            throw new IllegalArgumentException("shift.id is required");
+        }
+
+        var emp = employeeRepository.findById(workSchedule.getEmployee().getId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Employee not found: " + workSchedule.getEmployee().getId()));
+        var shift = shiftRepository.findById(workSchedule.getShift().getId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Shift not found: " + workSchedule.getShift().getId()));
+
+        workSchedule.setEmployee(emp);
+        workSchedule.setShift(shift);
+
+        assertNoOverlappingShift(emp.getId(), workSchedule.getWorkDate(), shift, null);
+
         // kiểm tra worksite id
         if (workSchedule.getWorkSite() == null || workSchedule.getWorkSite().getId() == null)
             throw new IllegalArgumentException("workSite.id is required");
@@ -221,6 +242,12 @@ public class WorkScheduleService {
             assertPayrollOpen(newEmployeeId, newWorkDate);
         }
 
+        assertNoOverlappingShift(
+                existing.getEmployee() != null ? existing.getEmployee().getId() : null,
+                existing.getWorkDate(),
+                existing.getShift(),
+                existing.getId());
+
         return workScheduleRepository.save(existing);
     }
 
@@ -274,6 +301,42 @@ public class WorkScheduleService {
                         "Ca đã được check-in, không thể thay đổi lịch làm");
             }
         });
+    }
+
+    private void assertNoOverlappingShift(Long employeeId, LocalDate workDate, Shift shift, Long excludeId) {
+        if (employeeId == null || workDate == null || shift == null) {
+            return;
+        }
+
+        LocalDateTime start = workDate.atTime(shift.getStartTime());
+        LocalDateTime end = workDate.atTime(shift.getEndTime());
+        if (!shift.getEndTime().isAfter(shift.getStartTime())) {
+            end = workDate.plusDays(1).atTime(shift.getEndTime());
+        }
+
+        List<WorkSchedule> existingSchedules = workScheduleRepository
+                .findByEmployeeIdAndWorkDate(employeeId, workDate);
+
+        for (WorkSchedule ws : existingSchedules) {
+            if (excludeId != null && excludeId.equals(ws.getId())) {
+                continue;
+            }
+
+            Shift otherShift = ws.getShift();
+            if (otherShift == null) {
+                continue;
+            }
+
+            LocalDateTime otherStart = workDate.atTime(otherShift.getStartTime());
+            LocalDateTime otherEnd = workDate.atTime(otherShift.getEndTime());
+            if (!otherShift.getEndTime().isAfter(otherShift.getStartTime())) {
+                otherEnd = workDate.plusDays(1).atTime(otherShift.getEndTime());
+            }
+
+            if (start.isBefore(otherEnd) && otherStart.isBefore(end)) {
+                throw new IllegalArgumentException("Nhân viên đã có ca trùng giờ trong ngày");
+            }
+        }
     }
 
     /**
