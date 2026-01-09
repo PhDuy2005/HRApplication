@@ -48,6 +48,9 @@ public class Employee {
     LocalDate hiredDate = LocalDate.now();
     StatusEnum status = StatusEnum.ACTIVE;
 
+    @Column(name = "allowance")
+    private Long allowance; // Phụ cấp cố định hàng tháng (VNĐ)
+
     @Column(columnDefinition = "MEDIUMTEXT")
     private String refreshToken;
 

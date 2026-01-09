@@ -14,7 +14,9 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.se347.nhom4.HRApplication.domain.requestDTO.ReqChangePasswordDTO;
 import com.se347.nhom4.HRApplication.domain.requestDTO.ReqLoginDTO;
+import com.se347.nhom4.HRApplication.domain.requestDTO.ReqResetPasswordDTO;
 import com.se347.nhom4.HRApplication.domain.responseDTO.ResLoginDTO;
 import com.se347.nhom4.HRApplication.domain.table.Employee;
 import com.se347.nhom4.HRApplication.service.EmployeeService;
@@ -27,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 @RestController
@@ -183,5 +186,45 @@ public class AuthController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, deleteCookies.toString())
                 .build();
+    }
+
+    /**
+     * API đổi mật khẩu (nhân viên tự đổi - yêu cầu mật khẩu cũ)
+     * Endpoint: PUT /api/v1/auth/change-password
+     * 
+     * @param dto DTO chứa mật khẩu cũ và mật khẩu mới
+     * @return ResponseEntity với thông báo thành công
+     */
+    @PutMapping("/change-password")
+    @ApiMessage("Đổi mật khẩu thành công")
+    public ResponseEntity<Void> changePassword(@Valid @RequestBody ReqChangePasswordDTO dto) {
+        // Lấy thông tin nhân viên đang đăng nhập từ SecurityContext
+        String email = SecurityUtil.getCurrentUserLogin()
+                .orElseThrow(() -> new RuntimeException("Không thể xác định người dùng hiện tại"));
+
+        Employee employee = this.employeeService.handleFindByUsername(email);
+
+        // Gọi service để đổi mật khẩu
+        this.employeeService.changePassword(employee.getId(), dto);
+
+        System.out.println(">>>AUTH MODULE: Password changed successfully for email: " + email);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * API reset mật khẩu (admin reset - không yêu cầu mật khẩu cũ)
+     * Endpoint: PUT /api/v1/auth/reset-password
+     * 
+     * @param dto DTO chứa ID nhân viên và mật khẩu mới
+     * @return ResponseEntity với thông báo thành công
+     */
+    @PutMapping("/reset-password")
+    @ApiMessage("Reset mật khẩu thành công")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ReqResetPasswordDTO dto) {
+        // Gọi service để reset mật khẩu
+        this.employeeService.resetPassword(dto);
+
+        System.out.println(">>>AUTH MODULE: Password reset successfully for employee ID: " + dto.getEmployeeId());
+        return ResponseEntity.ok().build();
     }
 }
