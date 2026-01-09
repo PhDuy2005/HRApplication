@@ -6,7 +6,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import com.se347.nhom4.HRApplication.util.enums.DayTypeEnum;
-// import com.se347.nhom4.HRApplication.util.enums.OtTypeEnum;
+import com.se347.nhom4.HRApplication.util.enums.OtTypeEnum;
 import com.se347.nhom4.HRApplication.util.enums.SalaryTypeEnum;
 import com.se347.nhom4.HRApplication.util.enums.StatusEnum;
 
@@ -27,6 +27,7 @@ public class ReqCreateEmpDTO {
 
     LocalDate hiredDate;
     StatusEnum status;
+    Long allowance; // Phụ cấp cố định hàng tháng (VNĐ)
 
     CreateEmpSalaryType empSalaryType;
 
@@ -46,10 +47,9 @@ public class ReqCreateEmpDTO {
 
     /**
      * Cấu hình OT rates cho nhân viên (tính lương làm thêm giờ).
-     * Danh sách các tỷ lệ OT theo loại ngày và loại OT.
-     * TODO: Review - Tính năng mới cần kiểm tra
+     * Danh sách các tỷ lệ OT theo loại ngày (otType luôn là ALL_OT).
      */
-    // List<CreateEmpOtRate> empOtRates;
+    List<CreateEmpOtRate> empOtRates;
 
     @Data
     @AllArgsConstructor
@@ -74,8 +74,8 @@ public class ReqCreateEmpDTO {
         private DayTypeEnum dayType;
         private Long baseRate; // Lương cơ bản theo ca. Đơn vị: VNĐ/h
         private BigDecimal rateMultiplier; // Hệ số nhân lương theo ca
-        private Instant effectiveFrom;
-        private Instant effectiveTo;
+        private LocalDate effectiveFrom;
+        private LocalDate effectiveTo;
         private Boolean isActive;
 
         // Fields cho ShiftSpecialRate (nếu shiftId != null)
@@ -102,19 +102,16 @@ public class ReqCreateEmpDTO {
 
     /**
      * DTO để tạo OT Rate cho nhân viên mới.
-     * Cấu hình tỷ lệ lương làm thêm giờ theo loại ngày và loại OT.
-     * TODO: Review - Tính năng mới cần kiểm tra
+     * Cấu hình tỷ lệ lương làm thêm giờ (otType luôn là ALL_OT, dayType = null).
      */
-    // @Data
-    // @AllArgsConstructor
-    // @NoArgsConstructor
-    // @Builder
-    // public static class CreateEmpOtRate {
-    // private OtTypeEnum otType; // NORMAL_OT | WEEKEND_OT | HOLIDAY_OT
-    // private DayTypeEnum dayType; // WEEKDAY | SATURDAY | SUNDAY
-    // private BigDecimal rateMultiplier; // Hệ số nhân (VD: 1.5, 2.0, 3.0)
-    // private Boolean isActive;
-    // private Instant effectiveFrom;
-    // private Instant effectiveTo;
-    // }
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Builder
+    public static class CreateEmpOtRate {
+        private BigDecimal rateMultiplier; // Hệ số nhân (VD: 1.5, 2.0, 3.0)
+        private Boolean isActive;
+        private LocalDate effectiveFrom;
+        private LocalDate effectiveTo;
+    }
 }

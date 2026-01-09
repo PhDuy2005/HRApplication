@@ -42,12 +42,11 @@ public class ShiftOtRate {
 
     @NotNull
     @Enumerated(EnumType.STRING)
-    @Column(name = "ot_type", nullable = false)
+    @Column(name = "ot_type", nullable = false, length = 50)
     private OtTypeEnum otType;
 
-    @NotNull
     @Enumerated(EnumType.STRING)
-    @Column(name = "day_type", nullable = false)
+    @Column(name = "day_type", nullable = true, length = 50)
     private DayTypeEnum dayType;
 
     @NotNull

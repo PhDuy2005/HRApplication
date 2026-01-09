@@ -1,5 +1,6 @@
 package com.se347.nhom4.HRApplication.service;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -10,11 +11,14 @@ import java.util.Optional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.se347.nhom4.HRApplication.domain.requestDTO.ReqChangePasswordDTO;
 import com.se347.nhom4.HRApplication.domain.requestDTO.ReqCreateEmpDTO;
+import com.se347.nhom4.HRApplication.domain.requestDTO.ReqResetPasswordDTO;
 import com.se347.nhom4.HRApplication.domain.table.Employee;
 import com.se347.nhom4.HRApplication.domain.table.EmployeeSalaryType;
 import com.se347.nhom4.HRApplication.domain.table.MonthlySalary;
 import com.se347.nhom4.HRApplication.domain.table.ShiftBaseRate;
+import com.se347.nhom4.HRApplication.domain.table.ShiftOtRate;
 import com.se347.nhom4.HRApplication.domain.table.ShiftRate;
 import com.se347.nhom4.HRApplication.domain.table.ShiftSpecialRate;
 import com.se347.nhom4.HRApplication.repository.EmployeeRepository;
@@ -94,6 +98,143 @@ public class EmployeeService {
         dto.setPassword(passwordEncoder.encode(dto.getPassword()));
         this.checkUniquePhoneAndEmail(dto.getPhone(), dto.getEmail());
         Employee employee = this.toEmployeeEntity(dto);
+        return employeeRepository.save(employee);
+    }
+
+    /**
+     * Update employee using same DTO as create.
+     * 
+     * @param id  the employee ID to update.
+     * @param dto the employee DTO with updated information.
+     * @return The updated employee.
+     */
+    public Employee updateEmployee(Long id, ReqCreateEmpDTO dto) {
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Không tìm thấy nhân viên với ID: " + id));
+
+        // Bỏ qua password (không update)
+        dto.setPassword(null);
+
+        // Kiểm tra unique phone và email (nếu có thay đổi)
+        if (dto.getPhone() != null && !dto.getPhone().equals(employee.getPhone())) {
+            checkUniquePhoneAndEmailForUpdate(id, dto.getPhone(), null);
+        }
+        if (dto.getEmail() != null && !dto.getEmail().equals(employee.getEmail())) {
+            checkUniquePhoneAndEmailForUpdate(id, null, dto.getEmail());
+        }
+
+        // Update basic info
+        if (dto.getFullname() != null)
+            employee.setFullname(dto.getFullname());
+        if (dto.getEmail() != null)
+            employee.setEmail(dto.getEmail());
+        if (dto.getPhone() != null)
+            employee.setPhone(dto.getPhone());
+        if (dto.getHiredDate() != null)
+            employee.setHiredDate(dto.getHiredDate());
+        if (dto.getStatus() != null)
+            employee.setStatus(dto.getStatus());
+        if (dto.getAllowance() != null)
+            employee.setAllowance(dto.getAllowance());
+
+        Instant now = Instant.now();
+
+        // Update Shift Rates
+        if (dto.getEmpShiftRates() != null && !dto.getEmpShiftRates().isEmpty()) {
+            for (ReqCreateEmpDTO.CreateEmpShiftRate rateDTO : dto.getEmpShiftRates()) {
+                // Bỏ qua nếu baseRate = 0
+                if (rateDTO.getBaseRate() == null || rateDTO.getBaseRate() == 0) {
+                    continue;
+                }
+
+                // Tìm shift rate cũ cùng dayType và deactivate
+                employee.getShiftRates().stream()
+                        .filter(rate -> rate.getDayType() == rateDTO.getDayType())
+                        .filter(rate -> rate.getIsActive())
+                        .filter(rate -> {
+                            // Kiểm tra shiftId nếu là special rate
+                            if (rateDTO.getShiftId() != null && rate instanceof ShiftSpecialRate) {
+                                return ((ShiftSpecialRate) rate).getShift() != null &&
+                                        ((ShiftSpecialRate) rate).getShift().getId().equals(rateDTO.getShiftId());
+                            }
+                            // Base rate: chỉ check nếu không phải special rate
+                            return rateDTO.getShiftId() == null && !(rate instanceof ShiftSpecialRate);
+                        })
+                        .forEach(rate -> {
+                            rate.setIsActive(false);
+                            rate.setEffectiveTo(now);
+                        });
+
+                // Tạo shift rate mới
+                ShiftRate newRate;
+                if (rateDTO.getShiftId() == null) {
+                    newRate = new ShiftBaseRate();
+                } else {
+                    ShiftSpecialRate specialRate = new ShiftSpecialRate();
+                    specialRate.setShift(shiftRepository.findById(rateDTO.getShiftId()).orElse(null));
+                    specialRate.setPriority(rateDTO.getPriority());
+                    specialRate.setNote(rateDTO.getNote());
+                    newRate = specialRate;
+                }
+                newRate.setEmployee(employee);
+                newRate.setDayType(rateDTO.getDayType());
+                newRate.setBaseRate(rateDTO.getBaseRate());
+                newRate.setRateMultiplier(
+                        rateDTO.getRateMultiplier() != null ? rateDTO.getRateMultiplier() : BigDecimal.ONE);
+                newRate.setEffectiveFrom(
+                        rateDTO.getEffectiveFrom() != null
+                                ? rateDTO.getEffectiveFrom().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant()
+                                : now);
+                newRate.setEffectiveTo(
+                        rateDTO.getEffectiveTo() != null
+                                ? rateDTO.getEffectiveTo().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant()
+                                : null);
+                newRate.setIsActive(true);
+
+                employee.getShiftRates().add(newRate);
+            }
+        }
+
+        // Update OT Rates
+        if (dto.getEmpOtRates() != null && !dto.getEmpOtRates().isEmpty()) {
+            for (ReqCreateEmpDTO.CreateEmpOtRate otRateDTO : dto.getEmpOtRates()) {
+                // Nếu rateMultiplier = 0 -> set về 1.0
+                BigDecimal multiplier = otRateDTO.getRateMultiplier();
+                if (multiplier == null || multiplier.compareTo(BigDecimal.ZERO) == 0) {
+                    multiplier = BigDecimal.ONE;
+                }
+
+                // Deactivate tất cả OT rates cũ
+                employee.getShiftOtRates().stream()
+                        .filter(rate -> rate.getIsActive())
+                        .forEach(rate -> {
+                            rate.setIsActive(false);
+                            rate.setEffectiveTo(now);
+                        });
+
+                // Tạo OT rate mới
+                ShiftOtRate newOtRate = ShiftOtRate.builder()
+                        .employee(employee)
+                        .otType(com.se347.nhom4.HRApplication.util.enums.OtTypeEnum.ALL_OT)
+                        .dayType(null)
+                        .rateMultiplier(multiplier)
+                        .isActive(true)
+                        .effectiveFrom(
+                                otRateDTO.getEffectiveFrom() != null
+                                        ? otRateDTO.getEffectiveFrom().atStartOfDay(java.time.ZoneId.systemDefault())
+                                                .toInstant()
+                                        : now)
+                        .effectiveTo(
+                                otRateDTO.getEffectiveTo() != null
+                                        ? otRateDTO.getEffectiveTo().atStartOfDay(java.time.ZoneId.systemDefault())
+                                                .toInstant()
+                                        : null)
+                        .build();
+
+                employee.getShiftOtRates().add(newOtRate);
+            }
+        }
+
         return employeeRepository.save(employee);
     }
 
@@ -231,6 +372,7 @@ public class EmployeeService {
         newEmp.setPhone(dto.getPhone());
         newEmp.setHiredDate(dto.getHiredDate() != null ? dto.getHiredDate() : LocalDate.now());
         newEmp.setStatus(dto.getStatus() != null ? dto.getStatus() : StatusEnum.ACTIVE);
+        newEmp.setAllowance(dto.getAllowance());
 
         // Tự động gán role dựa trên email
         if ("admin@gmail.com".equals(dto.getEmail())) {
@@ -245,7 +387,19 @@ public class EmployeeService {
 
         // Khởi tạo EmployeeSalaryTypes
         newEmp.setEmployeeSalaryTypes(new ArrayList<>());
-        EmployeeSalaryType empSalaryType = new EmployeeSalaryType(dto.getEmpSalaryType());
+
+        // Kiểm tra empSalaryType có null không, nếu null thì tạo default SHIFT
+        ReqCreateEmpDTO.CreateEmpSalaryType salaryTypeDTO = dto.getEmpSalaryType();
+        if (salaryTypeDTO == null) {
+            salaryTypeDTO = ReqCreateEmpDTO.CreateEmpSalaryType.builder()
+                    .salaryType(SalaryTypeEnum.SHIFT)
+                    .effectiveFrom(LocalDate.now())
+                    .note("Default salary type")
+                    .build();
+            System.out.println(">>>CREATE EMPLOYEE MODULE: empSalaryType is null, using default SHIFT type");
+        }
+
+        EmployeeSalaryType empSalaryType = new EmployeeSalaryType(salaryTypeDTO);
         System.out.println(">>>CREATE EMPLOYEE MODULE: Type of salary: " +
                 empSalaryType.getSalaryType());
         empSalaryType.setEmployee(newEmp);
@@ -271,10 +425,18 @@ public class EmployeeService {
                 shiftRate.setEmployee(newEmp);
                 shiftRate.setDayType(rateDTO.getDayType());
                 shiftRate.setBaseRate(rateDTO.getBaseRate());
-                shiftRate.setRateMultiplier(rateDTO.getRateMultiplier());
+                shiftRate.setRateMultiplier(
+                        rateDTO.getRateMultiplier() != null
+                                ? rateDTO.getRateMultiplier()
+                                : BigDecimal.ONE); // Default = 1.0 nếu không có
                 shiftRate.setEffectiveFrom(
-                        rateDTO.getEffectiveFrom() != null ? rateDTO.getEffectiveFrom() : Instant.now());
-                shiftRate.setEffectiveTo(rateDTO.getEffectiveTo());
+                        rateDTO.getEffectiveFrom() != null
+                                ? rateDTO.getEffectiveFrom().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant()
+                                : Instant.now());
+                shiftRate.setEffectiveTo(
+                        rateDTO.getEffectiveTo() != null
+                                ? rateDTO.getEffectiveTo().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant()
+                                : null);
                 shiftRate.setIsActive(rateDTO.getIsActive() != null ? rateDTO.getIsActive() : true);
 
                 empShiftRates.add(shiftRate);
@@ -285,30 +447,79 @@ public class EmployeeService {
         // Monthly salary không được xử lý - set null
         newEmp.setMonthlySalaries(null);
 
-        // TODO: Review - Xử lý OT Rates khi tạo nhân viên mới
-        // Tạo OT Rates cho nhân viên
-        // List<ShiftOtRate> empOtRates = new ArrayList<>();
-        // if (dto.getEmpOtRates() != null && !dto.getEmpOtRates().isEmpty()) {
-        // for (ReqCreateEmpDTO.CreateEmpOtRate otRateDTO : dto.getEmpOtRates()) {
-        // ShiftOtRate otRate = ShiftOtRate.builder()
-        // .employee(newEmp)
-        // .otType(otRateDTO.getOtType())
-        // .dayType(otRateDTO.getDayType())
-        // .rateMultiplier(otRateDTO.getRateMultiplier())
-        // .isActive(otRateDTO.getIsActive() != null ? otRateDTO.getIsActive() : true)
-        // .effectiveFrom(otRateDTO.getEffectiveFrom() != null ?
-        // otRateDTO.getEffectiveFrom() : Instant.now())
-        // .effectiveTo(otRateDTO.getEffectiveTo())
-        // .build();
-        // empOtRates.add(otRate);
-        // }
-        // }
-        // newEmp.setShiftOtRates(empOtRates);
+        // Xử lý OT Rates khi tạo nhân viên mới
+        List<ShiftOtRate> empOtRates = new ArrayList<>();
+        if (dto.getEmpOtRates() != null && !dto.getEmpOtRates().isEmpty()) {
+            for (ReqCreateEmpDTO.CreateEmpOtRate otRateDTO : dto.getEmpOtRates()) {
+                ShiftOtRate otRate = ShiftOtRate.builder()
+                        .employee(newEmp)
+                        .otType(com.se347.nhom4.HRApplication.util.enums.OtTypeEnum.ALL_OT)
+                        .dayType(null)
+                        .rateMultiplier(otRateDTO.getRateMultiplier())
+                        .isActive(otRateDTO.getIsActive() != null ? otRateDTO.getIsActive() : true)
+                        .effectiveFrom(
+                                otRateDTO.getEffectiveFrom() != null
+                                        ? otRateDTO.getEffectiveFrom().atStartOfDay(java.time.ZoneId.systemDefault())
+                                                .toInstant()
+                                        : Instant.now())
+                        .effectiveTo(
+                                otRateDTO.getEffectiveTo() != null
+                                        ? otRateDTO.getEffectiveTo().atStartOfDay(java.time.ZoneId.systemDefault())
+                                                .toInstant()
+                                        : null)
+                        .build();
+                empOtRates.add(otRate);
+            }
+        }
+        newEmp.setShiftOtRates(empOtRates);
 
         // Khởi tạo các list còn lại để tránh null pointer
-        newEmp.setShiftOtRates(new ArrayList<>());
         newEmp.setEmployeePenalties(new ArrayList<>());
         newEmp.setAttendancePenalties(new ArrayList<>());
         return newEmp;
+    }
+
+    /**
+     * Đổi mật khẩu cho nhân viên (tự đổi - yêu cầu mật khẩu cũ)
+     * 
+     * @param employeeId ID của nhân viên
+     * @param dto        DTO chứa mật khẩu cũ và mật khẩu mới
+     * @return Employee đã được cập nhật mật khẩu
+     */
+    public Employee changePassword(Long employeeId, ReqChangePasswordDTO dto) {
+        // Kiểm tra mật khẩu mới và xác nhận có khớp không
+        if (!dto.getNewPassword().equals(dto.getConfirmPassword())) {
+            throw new IllegalArgumentException("Mật khẩu mới và xác nhận mật khẩu không khớp");
+        }
+
+        // Tìm nhân viên
+        Employee employee = this.employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new NoSuchElementException("Không tìm thấy nhân viên với ID: " + employeeId));
+
+        // Kiểm tra mật khẩu cũ có đúng không
+        if (!passwordEncoder.matches(dto.getOldPassword(), employee.getPassword())) {
+            throw new IllegalArgumentException("Mật khẩu cũ không đúng");
+        }
+
+        // Mã hóa và cập nhật mật khẩu mới
+        employee.setPassword(passwordEncoder.encode(dto.getNewPassword()));
+        return this.employeeRepository.save(employee);
+    }
+
+    /**
+     * Reset mật khẩu cho nhân viên (admin reset - không yêu cầu mật khẩu cũ)
+     * 
+     * @param dto DTO chứa ID nhân viên và mật khẩu mới
+     * @return Employee đã được reset mật khẩu
+     */
+    public Employee resetPassword(ReqResetPasswordDTO dto) {
+        // Tìm nhân viên
+        Employee employee = this.employeeRepository.findById(dto.getEmployeeId())
+                .orElseThrow(() -> new NoSuchElementException(
+                        "Không tìm thấy nhân viên với ID: " + dto.getEmployeeId()));
+
+        // Mã hóa và cập nhật mật khẩu mới
+        employee.setPassword(passwordEncoder.encode(dto.getNewPassword()));
+        return this.employeeRepository.save(employee);
     }
 }

@@ -194,7 +194,7 @@ public class PayrollService {
                 totalOtHour += overtimeMinutes;
 
                 // Lấy ShiftOtRate (nếu không có thì hệ số mặc định là 1.0)
-                ShiftOtRate otRate = findActiveShiftOtRate(employee, dayType, now);
+                ShiftOtRate otRate = findActiveShiftOtRate(employee, now);
                 BigDecimal otMultiplier = otRate != null ? otRate.getRateMultiplier() : BigDecimal.ONE;
 
                 long otAmount = (long) (hourlyRate * otMultiplier.doubleValue() * otHours);
@@ -206,10 +206,13 @@ public class PayrollService {
         totalHour = totalHour / 60;
         totalOtHour = totalOtHour / 60;
 
-        // 6. Tính final salary
-        long finalSalary = shiftSalary + otSalary;
+        // 6. Lấy allowance từ employee (phụ cấp cố định hàng tháng)
+        long allowance = employee.getAllowance() != null ? employee.getAllowance() : 0L;
 
-        // 7. Lưu bảng lương mới vào database
+        // 7. Tính final salary = shift salary + OT salary + allowance - penalty
+        long finalSalary = shiftSalary + otSalary + allowance;
+
+        // 8. Lưu bảng lương mới vào database
         Payroll payroll = Payroll.builder()
                 .employee(employee)
                 .month(month)
@@ -276,12 +279,11 @@ public class PayrollService {
     }
 
     /**
-     * Tìm ShiftOtRate đang active cho nhân viên theo loại ngày
-     * Tìm theo dayType (vì OtType giờ chỉ còn ALL_OT)
+     * Tìm ShiftOtRate đang active cho nhân viên
+     * OtType luôn là ALL_OT và dayType = null (áp dụng cho tất cả ngày)
      */
-    private ShiftOtRate findActiveShiftOtRate(Employee employee, DayTypeEnum dayType, Instant now) {
+    private ShiftOtRate findActiveShiftOtRate(Employee employee, Instant now) {
         return employee.getShiftOtRates().stream()
-                .filter(rate -> rate.getDayType() == dayType)
                 .filter(rate -> rate.getIsActive())
                 .filter(rate -> rate.getEffectiveFrom().isBefore(now) || rate.getEffectiveFrom().equals(now))
                 .filter(rate -> rate.getEffectiveTo() == null || rate.getEffectiveTo().isAfter(now))

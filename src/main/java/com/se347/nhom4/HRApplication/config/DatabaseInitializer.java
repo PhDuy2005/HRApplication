@@ -77,6 +77,8 @@ public class DatabaseInitializer implements CommandLineRunner {
         createPermission("Lấy thông tin tài khoản", "/api/v1/auth/account", "GET", "AUTH");
         createPermission("Refresh token", "/api/v1/auth/refresh", "GET", "AUTH");
         createPermission("Đăng xuất", "/api/v1/auth/logout", "POST", "AUTH");
+        createPermission("Đổi mật khẩu", "/api/v1/auth/change-password", "PUT", "AUTH");
+        createPermission("Reset mật khẩu", "/api/v1/auth/reset-password", "PUT", "AUTH");
 
         // ==================== EMPLOYEE MODULE ====================
         createPermission("Xem danh sách nhân viên", "/api/v1/employees", "GET", "EMPLOYEE");
@@ -84,7 +86,8 @@ public class DatabaseInitializer implements CommandLineRunner {
         createPermission("Xem danh sách nhân viên inactive", "/api/v1/employees/inactive", "GET", "EMPLOYEE");
         createPermission("Xem chi tiết nhân viên", "/api/v1/employees/{id}", "GET", "EMPLOYEE");
         createPermission("Tạo nhân viên mới", "/api/v1/employees", "POST", "EMPLOYEE");
-        createPermission("Cập nhật thông tin nhân viên", "/api/v1/employees/{id}/basic-info", "PUT", "EMPLOYEE");
+        createPermission("Cập nhật thông tin nhân viên đầy đủ", "/api/v1/employees/{id}", "PUT", "EMPLOYEE");
+        createPermission("Cập nhật thông tin nhân viên cơ bản", "/api/v1/employees/{id}/basic-info", "PUT", "EMPLOYEE");
         createPermission("Xóa nhân viên", "/api/v1/employees/{id}", "DELETE", "EMPLOYEE");
 
         // ==================== ATTENDANCE MODULE ====================
@@ -204,6 +207,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         addPermissionToList(employeePermissions, "Lấy thông tin tài khoản");
         addPermissionToList(employeePermissions, "Refresh token");
         addPermissionToList(employeePermissions, "Đăng xuất");
+        addPermissionToList(employeePermissions, "Đổi mật khẩu");
 
         // Xem thông tin nhân viên (chỉ xem)
         addPermissionToList(employeePermissions, "Xem danh sách nhân viên active");
@@ -346,6 +350,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             addPermissionToList(employeePermissions, "Lấy thông tin tài khoản");
             addPermissionToList(employeePermissions, "Refresh token");
             addPermissionToList(employeePermissions, "Đăng xuất");
+            addPermissionToList(employeePermissions, "Đổi mật khẩu");
 
             // Xem thông tin nhân viên
             addPermissionToList(employeePermissions, "Xem danh sách nhân viên active");

@@ -34,6 +34,7 @@ public class ResEmployeeInfo {
 
     LocalDate hiredDate;
     StatusEnum status;
+    Long allowance; // Phụ cấp cố định hàng tháng (VNĐ)
 
     // // Role info
     RoleInfo role;
@@ -60,6 +61,7 @@ public class ResEmployeeInfo {
         this.phone = employee.getPhone();
         this.hiredDate = employee.getHiredDate();
         this.status = employee.getStatus();
+        this.allowance = employee.getAllowance();
 
         // Role
         if (employee.getRole() != null) {

@@ -90,9 +90,20 @@ public class EmployeeController {
         return ResponseEntity.status(HttpStatus.CREATED).body(new ResEmployeeInfo(createdEmployee));
     }
 
-    @PutMapping("/{id}/basic-info")
-    public ResponseEntity<ResEmployeeInfo> updateEmployee(@PathVariable("id") Long id, @RequestBody Employee employee) {
+    @PutMapping("/{id}")
+    @ApiMessage("Cập nhật thông tin nhân viên")
+    public ResponseEntity<ResEmployeeInfo> updateEmployee(@PathVariable("id") Long id,
+            @RequestBody ReqCreateEmpDTO dto) {
         System.out.println(">>>EMPLOYEE MODULE: Updating employee ID: " + id);
+        Employee updatedEmployee = employeeService.updateEmployee(id, dto);
+        System.out.println(">>>EMPLOYEE MODULE: Successfully updated employee: " + updatedEmployee.getFullname());
+        return ResponseEntity.ok(new ResEmployeeInfo(updatedEmployee));
+    }
+
+    @PutMapping("/{id}/basic-info")
+    public ResponseEntity<ResEmployeeInfo> updateEmployeeBasicInfo(@PathVariable("id") Long id,
+            @RequestBody Employee employee) {
+        System.out.println(">>>EMPLOYEE MODULE: Updating employee basic info ID: " + id);
         ResEmployeeInfo updatedEmployee = new ResEmployeeInfo(employeeService.updateEmployeeBasicInfo(id, employee));
         return ResponseEntity.ok(updatedEmployee);
     }
