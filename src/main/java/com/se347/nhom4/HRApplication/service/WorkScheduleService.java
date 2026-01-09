@@ -1,6 +1,7 @@
 package com.se347.nhom4.HRApplication.service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -12,13 +13,16 @@ import org.springframework.stereotype.Service;
 
 import com.se347.nhom4.HRApplication.domain.responseDTO.ResWeeklyByShift;
 import com.se347.nhom4.HRApplication.domain.table.Attendance;
+import com.se347.nhom4.HRApplication.domain.table.Shift;
 import com.se347.nhom4.HRApplication.domain.table.WorkSchedule;
 import com.se347.nhom4.HRApplication.domain.table.WorkSite;
 import com.se347.nhom4.HRApplication.repository.AttendanceRepository;
 import com.se347.nhom4.HRApplication.repository.EmployeeRepository;
+import com.se347.nhom4.HRApplication.repository.PayrollRepository;
 import com.se347.nhom4.HRApplication.repository.ShiftRepository;
 import com.se347.nhom4.HRApplication.repository.WorkScheduleRepository;
 import com.se347.nhom4.HRApplication.repository.WorkSiteRepository;
+import com.se347.nhom4.HRApplication.util.enums.PayrollStatusEnum;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +36,7 @@ public class WorkScheduleService {
     private final ShiftRepository shiftRepository;
     private final WorkSiteRepository workSiteRepository;
     private final AttendanceRepository attendanceRepository;
+    private final PayrollRepository payrollRepository;
 
     // gán WorkSite cho WorkSchedule (phục vụ GPS chấm công)
     @Transactional
@@ -139,6 +144,29 @@ public class WorkScheduleService {
      * Create new work schedule.
      */
     public WorkSchedule createWorkSchedule(WorkSchedule workSchedule) {
+        assertPayrollOpen(
+                workSchedule.getEmployee() != null ? workSchedule.getEmployee().getId() : null,
+                workSchedule.getWorkDate());
+
+        if (workSchedule.getEmployee() == null || workSchedule.getEmployee().getId() == null) {
+            throw new IllegalArgumentException("employee.id is required");
+        }
+        if (workSchedule.getShift() == null || workSchedule.getShift().getId() == null) {
+            throw new IllegalArgumentException("shift.id is required");
+        }
+
+        var emp = employeeRepository.findById(workSchedule.getEmployee().getId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Employee not found: " + workSchedule.getEmployee().getId()));
+        var shift = shiftRepository.findById(workSchedule.getShift().getId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Shift not found: " + workSchedule.getShift().getId()));
+
+        workSchedule.setEmployee(emp);
+        workSchedule.setShift(shift);
+
+        assertNoOverlappingShift(emp.getId(), workSchedule.getWorkDate(), shift, null);
+
         // kiểm tra worksite id
         if (workSchedule.getWorkSite() == null || workSchedule.getWorkSite().getId() == null)
             throw new IllegalArgumentException("workSite.id is required");
@@ -159,6 +187,12 @@ public class WorkScheduleService {
     public WorkSchedule updateWorkSchedule(Long id, WorkSchedule req) {
         WorkSchedule existing = workScheduleRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("WorkSchedule not found: " + id));
+
+        // Khóa chỉnh sửa nếu payroll của tháng đã chốt (APPROVED/PAID)
+        Long oldEmployeeId = existing.getEmployee() != null ? existing.getEmployee().getId() : null;
+        LocalDate oldWorkDate = existing.getWorkDate();
+        assertPayrollOpen(oldEmployeeId, oldWorkDate);
+        assertNoCheckedInAttendance(existing.getId());
 
         // 1) WorkDate
         if (req.getWorkDate() != null) {
@@ -200,14 +234,37 @@ public class WorkScheduleService {
             existing.setWorkSite(site);
         }
 
+        // Nếu sau khi update đổi nhân viên hoặc ngày thì cũng khóa theo payroll mới
+        Long newEmployeeId = existing.getEmployee() != null ? existing.getEmployee().getId() : null;
+        LocalDate newWorkDate = existing.getWorkDate();
+        if ((oldEmployeeId != null && !oldEmployeeId.equals(newEmployeeId))
+                || (oldWorkDate != null && !oldWorkDate.equals(newWorkDate))) {
+            assertPayrollOpen(newEmployeeId, newWorkDate);
+        }
+
+        assertNoOverlappingShift(
+                existing.getEmployee() != null ? existing.getEmployee().getId() : null,
+                existing.getWorkDate(),
+                existing.getShift(),
+                existing.getId());
+
         return workScheduleRepository.save(existing);
     }
 
     /**
      * Delete work schedule by ID.
      */
+    @Transactional
     public void deleteById(Long id) {
-        workScheduleRepository.deleteById(id);
+        WorkSchedule existing = workScheduleRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("WorkSchedule not found: " + id));
+
+        assertPayrollOpen(
+                existing.getEmployee() != null ? existing.getEmployee().getId() : null,
+                existing.getWorkDate());
+        assertNoCheckedInAttendance(existing.getId());
+
+        workScheduleRepository.delete(existing);
     }
 
     /**
@@ -215,6 +272,71 @@ public class WorkScheduleService {
      */
     public boolean existsByEmployeeIdAndShiftIdAndWorkDate(Long employeeId, Long shiftId, LocalDate workDate) {
         return workScheduleRepository.existsByEmployeeIdAndShiftIdAndWorkDate(employeeId, shiftId, workDate);
+    }
+
+    private void assertPayrollOpen(Long employeeId, LocalDate workDate) {
+        if (employeeId == null || workDate == null) {
+            return;
+        }
+
+        int month = workDate.getMonthValue();
+        int year = workDate.getYear();
+        payrollRepository.findByEmployee_IdAndMonthAndYear(employeeId, month, year)
+                .ifPresent(payroll -> {
+                    PayrollStatusEnum status = payroll.getStatus();
+                    if (status == PayrollStatusEnum.APPROVED || status == PayrollStatusEnum.PAID) {
+                        throw new IllegalStateException(
+                                "Bảng lương tháng " + month + "/" + year + " của nhân viên này đã chốt, không thể thay đổi lịch làm");
+                    }
+                });
+    }
+
+    private void assertNoCheckedInAttendance(Long workScheduleId) {
+        if (workScheduleId == null) {
+            return;
+        }
+        attendanceRepository.findByWorkSchedule_Id(workScheduleId).ifPresent(attendance -> {
+            if (attendance.getCheckIn() != null) {
+                throw new IllegalStateException(
+                        "Ca đã được check-in, không thể thay đổi lịch làm");
+            }
+        });
+    }
+
+    private void assertNoOverlappingShift(Long employeeId, LocalDate workDate, Shift shift, Long excludeId) {
+        if (employeeId == null || workDate == null || shift == null) {
+            return;
+        }
+
+        LocalDateTime start = workDate.atTime(shift.getStartTime());
+        LocalDateTime end = workDate.atTime(shift.getEndTime());
+        if (!shift.getEndTime().isAfter(shift.getStartTime())) {
+            end = workDate.plusDays(1).atTime(shift.getEndTime());
+        }
+
+        List<WorkSchedule> existingSchedules = workScheduleRepository
+                .findByEmployeeIdAndWorkDate(employeeId, workDate);
+
+        for (WorkSchedule ws : existingSchedules) {
+            if (excludeId != null && excludeId.equals(ws.getId())) {
+                continue;
+            }
+
+            Shift otherShift = ws.getShift();
+            if (otherShift == null) {
+                continue;
+            }
+
+            LocalDateTime otherStart = workDate.atTime(otherShift.getStartTime());
+            LocalDateTime otherEnd = workDate.atTime(otherShift.getEndTime());
+            if (!otherShift.getEndTime().isAfter(otherShift.getStartTime())) {
+                otherEnd = workDate.plusDays(1).atTime(otherShift.getEndTime());
+            }
+
+            if (start.isBefore(otherEnd) && otherStart.isBefore(end)) {
+                throw new IllegalArgumentException("Nhân viên đã có ca trùng giờ trong ngày");
+            }
+        }
     }
 
     /**
