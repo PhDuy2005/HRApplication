@@ -81,6 +81,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         // ==================== EMPLOYEE MODULE ====================
         createPermission("Xem danh sách nhân viên", "/api/v1/employees", "GET", "EMPLOYEE");
         createPermission("Xem danh sách nhân viên active", "/api/v1/employees/active", "GET", "EMPLOYEE");
+        createPermission("Xem danh sách nhân viên inactive", "/api/v1/employees/inactive", "GET", "EMPLOYEE");
         createPermission("Xem chi tiết nhân viên", "/api/v1/employees/{id}", "GET", "EMPLOYEE");
         createPermission("Tạo nhân viên mới", "/api/v1/employees", "POST", "EMPLOYEE");
         createPermission("Cập nhật thông tin nhân viên", "/api/v1/employees/{id}/basic-info", "PUT", "EMPLOYEE");
