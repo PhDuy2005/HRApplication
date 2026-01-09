@@ -1,5 +1,8 @@
 package com.se347.nhom4.HRApplication.domain.responseDTO;
 
+import java.time.Instant;
+import java.time.LocalDate;
+
 import com.se347.nhom4.HRApplication.domain.table.Employee;
 import com.se347.nhom4.HRApplication.util.enums.StatusEnum;
 
@@ -23,6 +26,8 @@ public class ResEmployeeBasic {
     private String phone;
     private StatusEnum status;
     private RoleInfo role;
+    private LocalDate hiredDate;
+    private Instant updatedAt;
 
     public ResEmployeeBasic(Employee employee) {
         this.id = employee.getId();
@@ -30,7 +35,8 @@ public class ResEmployeeBasic {
         this.email = employee.getEmail();
         this.phone = employee.getPhone();
         this.status = employee.getStatus();
-
+        this.hiredDate = employee.getHiredDate();
+        this.updatedAt = employee.getUpdatedAt();
         // Role
         if (employee.getRole() != null) {
             this.role = new RoleInfo(employee.getRole().getId(), employee.getRole().getName());

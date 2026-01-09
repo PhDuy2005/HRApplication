@@ -60,6 +60,18 @@ public class EmployeeController {
         return ResponseEntity.ok(activeEmployees);
     }
 
+    @GetMapping("/inactive")
+    @ApiMessage("Lấy danh sách nhân viên đang không hoạt động")
+    public ResponseEntity<List<ResEmployeeBasic>> getInactiveEmployees() {
+        System.out.println(">>>EMPLOYEE MODULE: Fetching all inactive employees");
+        List<ResEmployeeBasic> inactiveEmployees = employeeService.findAllInactive().stream()
+                .map(ResEmployeeBasic::new)
+                .toList();
+        System.out.println(
+                ">>>EMPLOYEE MODULE: Successfully fetched " + inactiveEmployees.size() + " inactive employees");
+        return ResponseEntity.ok(inactiveEmployees);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ResEmployeeInfo> getEmployeeById(@PathVariable("id") Long id) {
         return employeeService.findById(id)
