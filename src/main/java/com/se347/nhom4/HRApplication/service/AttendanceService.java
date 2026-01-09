@@ -14,6 +14,8 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.se347.nhom4.HRApplication.domain.requestDTO.ReqAdminCheckIn;
+import com.se347.nhom4.HRApplication.domain.requestDTO.ReqAdminCheckOut;
 import com.se347.nhom4.HRApplication.domain.requestDTO.ReqCheckIn;
 import com.se347.nhom4.HRApplication.domain.requestDTO.ReqCheckOut;
 import com.se347.nhom4.HRApplication.domain.responseDTO.ResAttendance;
@@ -38,8 +40,9 @@ public class AttendanceService {
     private final EmployeeRepository employeeRepository;
 
     private static final ZoneId VN_TZ = ZoneId.of("Asia/Ho_Chi_Minh");
-    
-    // Cửa sổ check-in: cho phép check-in từ trước giờ vào ca 30 phút đến trước giờ tan ca
+
+    // Cửa sổ check-in: cho phép check-in từ trước giờ vào ca 30 phút đến trước giờ
+    // tan ca
     private static final int CHECK_IN_WINDOW_MINUTES_BEFORE = 30;
     private static final int CHECK_OUT_MAX_HOURS_AFTER = 6;
 
@@ -73,7 +76,8 @@ public class AttendanceService {
         // Validation: Check-in window (từ trước giờ vào ca X phút đến trước giờ tan ca)
         validateCheckInWindow(schedule);
 
-        // Validation: Không có 2 ca đang mở (nhưng cho phép nếu ca trước đã AUTO_CLOSED)
+        // Validation: Không có 2 ca đang mở (nhưng cho phép nếu ca trước đã
+        // AUTO_CLOSED)
         validateNoActiveShift(employeeId, schedule.getWorkDate(), schedule.getId());
 
         Instant now = Instant.now();
@@ -201,7 +205,8 @@ public class AttendanceService {
     // ======================
 
     /**
-     * Validation: Check-in window - chỉ cho check-in từ trước giờ vào ca X phút đến trước giờ tan ca
+     * Validation: Check-in window - chỉ cho check-in từ trước giờ vào ca X phút đến
+     * trước giờ tan ca
      */
     private void validateCheckInWindow(WorkSchedule schedule) {
         if (schedule.getShift() == null) {
@@ -237,10 +242,12 @@ public class AttendanceService {
     }
 
     /**
-     * Validation: Không có 2 ca đang mở (nhưng cho phép nếu ca trước đã AUTO_CLOSED)
+     * Validation: Không có 2 ca đang mở (nhưng cho phép nếu ca trước đã
+     * AUTO_CLOSED)
      */
     private void validateNoActiveShift(Long employeeId, LocalDate workDate, Long currentScheduleId) {
-        // Tìm các attendance của nhân viên cùng ngày, đã check-in nhưng chưa check-out và chưa AUTO_CLOSED
+        // Tìm các attendance của nhân viên cùng ngày, đã check-in nhưng chưa check-out
+        // và chưa AUTO_CLOSED
         List<Attendance> activeAttendances = attendanceRepository
                 .findByEmployee_IdAndWorkDateAndCheckInNotNullAndCheckOutNullAndStatusNotAutoClosed(
                         employeeId, workDate);
@@ -633,5 +640,159 @@ public class AttendanceService {
                         .build())
                 .statistics(statistics)
                 .build();
+    }
+
+    // ====================================
+    // ADMIN APIs - Không validate GPS và thời gian
+    // ====================================
+
+    /**
+     * Admin tạo check-in thủ công
+     * Không yêu cầu GPS, không ràng buộc thời gian
+     */
+    @Transactional
+    public ResAttendance adminCheckIn(Long workScheduleId, ReqAdminCheckIn req) {
+        System.out.println(">>>ATTENDANCE MODULE: Admin check-in for workScheduleId: " + workScheduleId);
+
+        WorkSchedule schedule = workScheduleRepository.findById(workScheduleId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "WorkSchedule not found with id: " + workScheduleId));
+
+        Attendance attendance = attendanceRepository.findByWorkSchedule_Id(schedule.getId())
+                .orElseGet(() -> buildNewAttendance(schedule));
+
+        if (attendance.getCheckIn() != null) {
+            throw new IllegalArgumentException("Ca này đã có check-in rồi");
+        }
+
+        attendance.setCheckIn(req.getCheckInTime());
+        attendance.setStatus(AttendanceStatusEnum.ACTIVE);
+
+        // Không set GPS fields (null)
+        attendance.setCheckInLat(null);
+        attendance.setCheckInLng(null);
+        attendance.setCheckInAccuracyMeters(null);
+        attendance.setCheckInDistanceMeters(null);
+
+        System.out.println(">>>ATTENDANCE MODULE: Admin check-in recorded at " + req.getCheckInTime());
+
+        Attendance saved = attendanceRepository.save(attendance);
+        return toResponse(saved);
+    }
+
+    /**
+     * Admin tạo check-out thủ công
+     * Không yêu cầu GPS, không ràng buộc thời gian
+     */
+    @Transactional
+    public ResAttendance adminCheckOut(Long workScheduleId, ReqAdminCheckOut req) {
+        System.out.println(">>>ATTENDANCE MODULE: Admin check-out for workScheduleId: " + workScheduleId);
+
+        WorkSchedule schedule = workScheduleRepository.findById(workScheduleId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "WorkSchedule not found with id: " + workScheduleId));
+
+        Attendance attendance = attendanceRepository.findByWorkSchedule_Id(schedule.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Chưa có check-in cho ca này"));
+
+        if (attendance.getCheckIn() == null) {
+            throw new IllegalArgumentException("Chưa có check-in nên không thể check-out");
+        }
+
+        if (attendance.getCheckOut() != null) {
+            throw new IllegalArgumentException("Ca này đã có check-out rồi");
+        }
+
+        if (req.getCheckOutTime().isBefore(attendance.getCheckIn())) {
+            throw new IllegalArgumentException("Thời gian check-out phải sau thời gian check-in");
+        }
+
+        attendance.setCheckOut(req.getCheckOutTime());
+        attendance.setStatus(AttendanceStatusEnum.COMPLETED);
+
+        // Không set GPS fields (null)
+        attendance.setCheckOutLat(null);
+        attendance.setCheckOutLng(null);
+        attendance.setCheckOutAccuracyMeters(null);
+        attendance.setCheckOutDistanceMeters(null);
+
+        // Tính totalWorkTime và áp dụng late/overtime
+        calculatePayableWorkTime(attendance, schedule);
+        applyLateAndOvertime(attendance, schedule);
+
+        System.out.println(">>>ATTENDANCE MODULE: Admin check-out recorded at " + req.getCheckOutTime());
+
+        Attendance saved = attendanceRepository.save(attendance);
+        return toResponse(saved);
+    }
+
+    /**
+     * Admin cập nhật check-in thủ công
+     * Không yêu cầu GPS, không ràng buộc thời gian
+     */
+    @Transactional
+    public ResAttendance adminUpdateCheckIn(Long workScheduleId, ReqAdminCheckIn req) {
+        System.out.println(">>>ATTENDANCE MODULE: Admin update check-in for workScheduleId: " + workScheduleId);
+
+        WorkSchedule schedule = workScheduleRepository.findById(workScheduleId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "WorkSchedule not found with id: " + workScheduleId));
+
+        Attendance attendance = attendanceRepository.findByWorkSchedule_Id(schedule.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy attendance cho ca này"));
+
+        // Validation: Nếu đã có checkout, checkIn mới phải trước checkOut
+        if (attendance.getCheckOut() != null && req.getCheckInTime().isAfter(attendance.getCheckOut())) {
+            throw new IllegalArgumentException("Thời gian check-in phải trước thời gian check-out");
+        }
+
+        attendance.setCheckIn(req.getCheckInTime());
+
+        // Nếu đã có checkout, tính lại work time
+        if (attendance.getCheckOut() != null) {
+            calculatePayableWorkTime(attendance, schedule);
+            applyLateAndOvertime(attendance, schedule);
+        }
+
+        System.out.println(">>>ATTENDANCE MODULE: Admin updated check-in to " + req.getCheckInTime());
+
+        Attendance saved = attendanceRepository.save(attendance);
+        return toResponse(saved);
+    }
+
+    /**
+     * Admin cập nhật check-out thủ công
+     * Không yêu cầu GPS, không ràng buộc thời gian
+     */
+    @Transactional
+    public ResAttendance adminUpdateCheckOut(Long workScheduleId, ReqAdminCheckOut req) {
+        System.out.println(">>>ATTENDANCE MODULE: Admin update check-out for workScheduleId: " + workScheduleId);
+
+        WorkSchedule schedule = workScheduleRepository.findById(workScheduleId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "WorkSchedule not found with id: " + workScheduleId));
+
+        Attendance attendance = attendanceRepository.findByWorkSchedule_Id(schedule.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy attendance cho ca này"));
+
+        if (attendance.getCheckIn() == null) {
+            throw new IllegalArgumentException("Chưa có check-in nên không thể cập nhật check-out");
+        }
+
+        if (req.getCheckOutTime().isBefore(attendance.getCheckIn())) {
+            throw new IllegalArgumentException("Thời gian check-out phải sau thời gian check-in");
+        }
+
+        attendance.setCheckOut(req.getCheckOutTime());
+        attendance.setStatus(AttendanceStatusEnum.COMPLETED);
+
+        // Tính lại work time
+        calculatePayableWorkTime(attendance, schedule);
+        applyLateAndOvertime(attendance, schedule);
+
+        System.out.println(">>>ATTENDANCE MODULE: Admin updated check-out to " + req.getCheckOutTime());
+
+        Attendance saved = attendanceRepository.save(attendance);
+        return toResponse(saved);
     }
 }
