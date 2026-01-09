@@ -29,6 +29,13 @@ public class ShiftController {
         return ResponseEntity.ok(shiftService.createShift(dto));
     }
 
+    @PostMapping("/activate/{id}")
+    @ApiMessage("Kích hoạt ca làm việc")
+    public ResponseEntity<ResShiftDTO> activateShift(@PathVariable("id") Long id) {
+        System.out.println(">>>SHIFT MODULE: Activating shift with id: " + id);
+        return ResponseEntity.ok(shiftService.activateShift(id));
+    }
+
     @PutMapping("/{id}")
     @ApiMessage("Cập nhật thông tin ca làm việc")
     public ResponseEntity<ResShiftDTO> updateShift(
@@ -40,10 +47,9 @@ public class ShiftController {
 
     @DeleteMapping("/{id}")
     @ApiMessage("Vô hiệu hóa ca làm việc")
-    public ResponseEntity<Void> deactivateShift(@PathVariable Long id) {
+    public ResponseEntity<ResShiftDTO> deactivateShift(@PathVariable("id") Long id) {
         System.out.println(">>>SHIFT MODULE: Deactivating shift with id: " + id);
-        shiftService.deactivateShift(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(shiftService.deactivateShift(id));
     }
 
     @GetMapping

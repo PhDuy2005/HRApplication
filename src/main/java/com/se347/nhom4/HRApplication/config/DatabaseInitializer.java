@@ -129,6 +129,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         createPermission("Xem chi tiết ca làm việc", "/api/v1/shifts/{id}", "GET", "SHIFT");
         createPermission("Tìm kiếm ca làm việc theo tên", "/api/v1/shifts/search", "GET", "SHIFT");
         createPermission("Tạo ca làm việc mới", "/api/v1/shifts", "POST", "SHIFT");
+        createPermission("Kích hoạt ca làm việc", "/api/v1/shifts/activate/{id}", "POST", "SHIFT");
         createPermission("Cập nhật ca làm việc", "/api/v1/shifts/{id}", "PUT", "SHIFT");
         createPermission("Xóa ca làm việc", "/api/v1/shifts/{id}", "DELETE", "SHIFT");
 
