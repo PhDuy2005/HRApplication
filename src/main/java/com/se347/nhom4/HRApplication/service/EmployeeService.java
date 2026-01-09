@@ -243,57 +243,49 @@ public class EmployeeService {
             System.out.println(">>>CREATE EMPLOYEE MODULE: Gán role EMPLOYEE cho email: " + dto.getEmail());
         }
 
-        // newEmp.setEmployeeSalaryTypes(new ArrayList<>());
-        // EmployeeSalaryType empSalaryType = new
-        // EmployeeSalaryType(dto.getEmpSalaryType());
-        // System.out.println(">>>CREATE EMPLOYEE MODULE: Type of salary: " +
-        // empSalaryType.getSalaryType());
-        // empSalaryType.setEmployee(newEmp);
-        // newEmp.getEmployeeSalaryTypes().add(empSalaryType);
-        // if (empSalaryType.getSalaryType() == SalaryTypeEnum.SHIFT) {
-        // // newEmp.setShiftRates(new ArrayList<>());
-        // List<ShiftRate> empShiftRates = new ArrayList<>();
-        // for (ReqCreateEmpDTO.CreateEmpShiftRate rateDTO : dto.getEmpShiftRates()) {
-        // ShiftRate shiftRate;
-        // if (rateDTO.getShiftId() == null) {
-        // // Tạo ShiftBaseRate
-        // shiftRate = new ShiftBaseRate();
-        // } else {
-        // // Tạo ShiftSpecialRate
-        // ShiftSpecialRate specialRate = new ShiftSpecialRate();
-        // specialRate.setShift(this.shiftRepository.findById(rateDTO.getShiftId()).orElse(null));
-        // specialRate.setPriority(rateDTO.getPriority());
-        // specialRate.setNote(rateDTO.getNote());
-        // shiftRate = specialRate;
-        // }
-        // shiftRate.setEmployee(newEmp);
-        // shiftRate.setDayType(rateDTO.getDayType());
-        // shiftRate.setBaseRate(rateDTO.getBaseRate());
-        // shiftRate.setRateMultiplier(rateDTO.getRateMultiplier());
-        // shiftRate.setEffectiveFrom(
-        // rateDTO.getEffectiveFrom() != null ? rateDTO.getEffectiveFrom() :
-        // Instant.now());
-        // shiftRate.setEffectiveTo(rateDTO.getEffectiveTo());
-        // shiftRate.setIsActive(rateDTO.getIsActive() != null ? rateDTO.getIsActive() :
-        // true);
-
-        // empShiftRates.add(shiftRate);
-        // }
-        // newEmp.setShiftRates(empShiftRates);
-        // } else if (empSalaryType.getSalaryType() == SalaryTypeEnum.MONTHLY) {
-        // newEmp.setMonthlySalaries(new ArrayList<>());
-        // List<MonthlySalary> empMonthlySalaries = new ArrayList<>();
-        // MonthlySalary monthlySalary = new MonthlySalary(dto.getEmpMonthlySalary());
-        // monthlySalary.setEmployee(newEmp);
-        // empMonthlySalaries.add(monthlySalary);
-        // newEmp.setMonthlySalaries(empMonthlySalaries);
-        // }
-
-        // để tránh null pointer khi serialize/làm việc sau này (nếu entity có getter
-        // dùng list)
+        // Khởi tạo EmployeeSalaryTypes
         newEmp.setEmployeeSalaryTypes(new ArrayList<>());
-        newEmp.setMonthlySalaries(new ArrayList<>());
-        newEmp.setShiftRates(new ArrayList<>());
+        EmployeeSalaryType empSalaryType = new EmployeeSalaryType(dto.getEmpSalaryType());
+        System.out.println(">>>CREATE EMPLOYEE MODULE: Type of salary: " +
+                empSalaryType.getSalaryType());
+        empSalaryType.setEmployee(newEmp);
+        newEmp.getEmployeeSalaryTypes().add(empSalaryType);
+
+        // Xử lý lương theo ca (chỉ hỗ trợ SHIFT type)
+        // Tạo ShiftRates cho lương theo ca
+        List<ShiftRate> empShiftRates = new ArrayList<>();
+        if (dto.getEmpShiftRates() != null && !dto.getEmpShiftRates().isEmpty()) {
+            for (ReqCreateEmpDTO.CreateEmpShiftRate rateDTO : dto.getEmpShiftRates()) {
+                ShiftRate shiftRate;
+                if (rateDTO.getShiftId() == null) {
+                    // Tạo ShiftBaseRate
+                    shiftRate = new ShiftBaseRate();
+                } else {
+                    // Tạo ShiftSpecialRate
+                    ShiftSpecialRate specialRate = new ShiftSpecialRate();
+                    specialRate.setShift(this.shiftRepository.findById(rateDTO.getShiftId()).orElse(null));
+                    specialRate.setPriority(rateDTO.getPriority());
+                    specialRate.setNote(rateDTO.getNote());
+                    shiftRate = specialRate;
+                }
+                shiftRate.setEmployee(newEmp);
+                shiftRate.setDayType(rateDTO.getDayType());
+                shiftRate.setBaseRate(rateDTO.getBaseRate());
+                shiftRate.setRateMultiplier(rateDTO.getRateMultiplier());
+                shiftRate.setEffectiveFrom(
+                        rateDTO.getEffectiveFrom() != null ? rateDTO.getEffectiveFrom() : Instant.now());
+                shiftRate.setEffectiveTo(rateDTO.getEffectiveTo());
+                shiftRate.setIsActive(rateDTO.getIsActive() != null ? rateDTO.getIsActive() : true);
+
+                empShiftRates.add(shiftRate);
+            }
+        }
+        newEmp.setShiftRates(empShiftRates);
+
+        // Monthly salary không được xử lý - set null
+        newEmp.setMonthlySalaries(null);
+
+        // Khởi tạo các list còn lại để tránh null pointer
         newEmp.setShiftOtRates(new ArrayList<>());
         newEmp.setEmployeePenalties(new ArrayList<>());
         newEmp.setAttendancePenalties(new ArrayList<>());
