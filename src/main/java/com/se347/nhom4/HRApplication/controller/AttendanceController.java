@@ -6,12 +6,15 @@ import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
+import com.se347.nhom4.HRApplication.domain.requestDTO.ReqAdminCheckIn;
+import com.se347.nhom4.HRApplication.domain.requestDTO.ReqAdminCheckOut;
 import com.se347.nhom4.HRApplication.domain.requestDTO.ReqCheckIn;
 import com.se347.nhom4.HRApplication.domain.requestDTO.ReqCheckOut;
 import com.se347.nhom4.HRApplication.domain.responseDTO.ResAttendance;
 import com.se347.nhom4.HRApplication.service.AttendanceService;
 import com.se347.nhom4.HRApplication.util.annotation.ApiMessage;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -85,5 +88,65 @@ public class AttendanceController {
         System.out.println(">>>ATTENDANCE MODULE: Fetching attendance for employeeId: " + employeeId +
                 " and workScheduleId: " + workScheduleId);
         return attendanceService.getAttendanceByWorkSchedule(workScheduleId, employeeId);
+    }
+
+    // ====================================
+    // ADMIN APIs - Quản lý chấm công thủ công
+    // ====================================
+
+    /**
+     * Admin tạo check-in thủ công
+     * Không yêu cầu GPS, không ràng buộc thời gian
+     * Ví dụ: POST /api/v1/attendances/admin/checkin/123
+     */
+    @PostMapping("/admin/checkin/{workScheduleId}")
+    @ApiMessage("Admin tạo check-in thủ công")
+    public ResAttendance adminCheckIn(
+            @PathVariable("workScheduleId") Long workScheduleId,
+            @Valid @RequestBody ReqAdminCheckIn req) {
+        System.out.println(">>>ATTENDANCE MODULE: Admin creating check-in for workScheduleId: " + workScheduleId);
+        return attendanceService.adminCheckIn(workScheduleId, req);
+    }
+
+    /**
+     * Admin tạo check-out thủ công
+     * Không yêu cầu GPS, không ràng buộc thời gian
+     * Ví dụ: POST /api/v1/attendances/admin/checkout/123
+     */
+    @PostMapping("/admin/checkout/{workScheduleId}")
+    @ApiMessage("Admin tạo check-out thủ công")
+    public ResAttendance adminCheckOut(
+            @PathVariable("workScheduleId") Long workScheduleId,
+            @Valid @RequestBody ReqAdminCheckOut req) {
+        System.out.println(">>>ATTENDANCE MODULE: Admin creating check-out for workScheduleId: " + workScheduleId);
+        return attendanceService.adminCheckOut(workScheduleId, req);
+    }
+
+    /**
+     * Admin cập nhật check-in thủ công
+     * Không yêu cầu GPS, không ràng buộc thời gian
+     * Ví dụ: PUT /api/v1/attendances/admin/checkin/123
+     */
+    @PutMapping("/admin/checkin/{workScheduleId}")
+    @ApiMessage("Admin cập nhật check-in thủ công")
+    public ResAttendance adminUpdateCheckIn(
+            @PathVariable("workScheduleId") Long workScheduleId,
+            @Valid @RequestBody ReqAdminCheckIn req) {
+        System.out.println(">>>ATTENDANCE MODULE: Admin updating check-in for workScheduleId: " + workScheduleId);
+        return attendanceService.adminUpdateCheckIn(workScheduleId, req);
+    }
+
+    /**
+     * Admin cập nhật check-out thủ công
+     * Không yêu cầu GPS, không ràng buộc thời gian
+     * Ví dụ: PUT /api/v1/attendances/admin/checkout/123
+     */
+    @PutMapping("/admin/checkout/{workScheduleId}")
+    @ApiMessage("Admin cập nhật check-out thủ công")
+    public ResAttendance adminUpdateCheckOut(
+            @PathVariable("workScheduleId") Long workScheduleId,
+            @Valid @RequestBody ReqAdminCheckOut req) {
+        System.out.println(">>>ATTENDANCE MODULE: Admin updating check-out for workScheduleId: " + workScheduleId);
+        return attendanceService.adminUpdateCheckOut(workScheduleId, req);
     }
 }

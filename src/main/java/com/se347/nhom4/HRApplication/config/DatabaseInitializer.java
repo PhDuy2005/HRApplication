@@ -103,6 +103,14 @@ public class DatabaseInitializer implements CommandLineRunner {
         createPermission("Xóa chấm công", "/api/v1/attendances/{id}", "DELETE", "ATTENDANCE");
         createPermission("Xem tổng hợp chấm công theo tuần", "/api/v2/attendances/weekly-summary", "GET",
                 "ATTENDANCE");
+        createPermission("Admin tạo check-in thủ công", "/api/v1/attendances/admin/checkin/{workScheduleId}", "POST",
+                "ATTENDANCE");
+        createPermission("Admin tạo check-out thủ công", "/api/v1/attendances/admin/checkout/{workScheduleId}", "POST",
+                "ATTENDANCE");
+        createPermission("Admin cập nhật check-in thủ công", "/api/v1/attendances/admin/checkin/{workScheduleId}",
+                "PUT", "ATTENDANCE");
+        createPermission("Admin cập nhật check-out thủ công", "/api/v1/attendances/admin/checkout/{workScheduleId}",
+                "PUT", "ATTENDANCE");
 
         // ==================== WORK SCHEDULE MODULE ====================
         createPermission("Xem lịch làm việc", "/api/v1/work-schedules", "GET", "WORK_SCHEDULE");
