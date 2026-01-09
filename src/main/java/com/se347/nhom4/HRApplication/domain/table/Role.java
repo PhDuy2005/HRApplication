@@ -3,6 +3,7 @@ package com.se347.nhom4.HRApplication.domain.table;
 import java.time.Instant;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.se347.nhom4.HRApplication.util.SecurityUtil;
 
@@ -47,6 +48,7 @@ public class Role {
     private List<Permission> permissions;
 
     @OneToMany(mappedBy = "role")
+    @JsonIgnore
     private List<Employee> employees;
 
     private Instant createdAt;

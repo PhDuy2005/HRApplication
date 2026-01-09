@@ -3,13 +3,18 @@ package com.se347.nhom4.HRApplication.service;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.hibernate.boot.registry.classloading.spi.ClassLoaderService.Work;
 import org.springframework.stereotype.Service;
 
+import com.se347.nhom4.HRApplication.domain.responseDTO.ResWeeklyByShift;
+import com.se347.nhom4.HRApplication.domain.table.Attendance;
 import com.se347.nhom4.HRApplication.domain.table.WorkSchedule;
 import com.se347.nhom4.HRApplication.domain.table.WorkSite;
+import com.se347.nhom4.HRApplication.repository.AttendanceRepository;
 import com.se347.nhom4.HRApplication.repository.EmployeeRepository;
 import com.se347.nhom4.HRApplication.repository.ShiftRepository;
 import com.se347.nhom4.HRApplication.repository.WorkScheduleRepository;
@@ -26,6 +31,7 @@ public class WorkScheduleService {
     private final EmployeeRepository employeeRepository;
     private final ShiftRepository shiftRepository;
     private final WorkSiteRepository workSiteRepository;
+    private final AttendanceRepository attendanceRepository;
 
     // gán WorkSite cho WorkSchedule (phục vụ GPS chấm công)
     @Transactional
@@ -150,48 +156,52 @@ public class WorkScheduleService {
      * Update work schedule.
      */
     @Transactional
-public WorkSchedule updateWorkSchedule(Long id, WorkSchedule req) {
-    WorkSchedule existing = workScheduleRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("WorkSchedule not found: " + id));
+    public WorkSchedule updateWorkSchedule(Long id, WorkSchedule req) {
+        WorkSchedule existing = workScheduleRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("WorkSchedule not found: " + id));
 
-    // 1) WorkDate
-    if (req.getWorkDate() != null) {
-        existing.setWorkDate(req.getWorkDate());
+        // 1) WorkDate
+        if (req.getWorkDate() != null) {
+            existing.setWorkDate(req.getWorkDate());
+        }
+
+        // hoặc:
+        // if (req.getDescription() != null)
+        // existing.setDescription(req.getDescription());
+
+        // 3) Employee (nếu cho phép đổi nhân viên)
+        if (req.getEmployee() != null && req.getEmployee().getId() != null) {
+            var emp = employeeRepository.findById(req.getEmployee().getId())
+                    .orElseThrow(
+                            () -> new IllegalArgumentException("Employee not found: " + req.getEmployee().getId()));
+            // nếu có active:
+            // if (Boolean.FALSE.equals(emp.getActive())) throw new
+            // IllegalArgumentException("Employee inactive");
+            existing.setEmployee(emp);
+        }
+
+        // 4) Shift (nếu cho phép đổi ca)
+        if (req.getShift() != null && req.getShift().getId() != null) {
+            var shift = shiftRepository.findById(req.getShift().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Shift not found: " + req.getShift().getId()));
+            // nếu shift có active:
+            // if (Boolean.FALSE.equals(shift.getIsActive())) throw new
+            // IllegalArgumentException("Shift inactive");
+            existing.setShift(shift);
+        }
+
+        // 5) WorkSite (đoạn bạn đã làm, giữ lại)
+        if (req.getWorkSite() != null && req.getWorkSite().getId() != null) {
+            var site = workSiteRepository.findById(req.getWorkSite().getId())
+                    .orElseThrow(
+                            () -> new IllegalArgumentException("WorkSite not found: " + req.getWorkSite().getId()));
+            if (Boolean.FALSE.equals(site.getActive()))
+                throw new IllegalArgumentException("WorkSite inactive");
+            existing.setWorkSite(site);
+        }
+
+        return workScheduleRepository.save(existing);
     }
-
-    // hoặc:
-    // if (req.getDescription() != null) existing.setDescription(req.getDescription());
-
-    // 3) Employee (nếu cho phép đổi nhân viên)
-    if (req.getEmployee() != null && req.getEmployee().getId() != null) {
-        var emp = employeeRepository.findById(req.getEmployee().getId())
-                .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + req.getEmployee().getId()));
-        // nếu có active:
-        // if (Boolean.FALSE.equals(emp.getActive())) throw new IllegalArgumentException("Employee inactive");
-        existing.setEmployee(emp);
-    }
-
-    // 4) Shift (nếu cho phép đổi ca)
-    if (req.getShift() != null && req.getShift().getId() != null) {
-        var shift = shiftRepository.findById(req.getShift().getId())
-                .orElseThrow(() -> new IllegalArgumentException("Shift not found: " + req.getShift().getId()));
-        // nếu shift có active:
-        // if (Boolean.FALSE.equals(shift.getIsActive())) throw new IllegalArgumentException("Shift inactive");
-        existing.setShift(shift);
-    }
-
-    // 5) WorkSite (đoạn bạn đã làm, giữ lại)
-    if (req.getWorkSite() != null && req.getWorkSite().getId() != null) {
-        var site = workSiteRepository.findById(req.getWorkSite().getId())
-                .orElseThrow(() -> new IllegalArgumentException("WorkSite not found: " + req.getWorkSite().getId()));
-        if (Boolean.FALSE.equals(site.getActive()))
-            throw new IllegalArgumentException("WorkSite inactive");
-        existing.setWorkSite(site);
-    }
-
-   
-    return workScheduleRepository.save(existing);
-}
 
     /**
      * Delete work schedule by ID.
@@ -205,5 +215,103 @@ public WorkSchedule updateWorkSchedule(Long id, WorkSchedule req) {
      */
     public boolean existsByEmployeeIdAndShiftIdAndWorkDate(Long employeeId, Long shiftId, LocalDate workDate) {
         return workScheduleRepository.existsByEmployeeIdAndShiftIdAndWorkDate(employeeId, shiftId, workDate);
+    }
+
+    /**
+     * Get weekly work schedules grouped by shift with attendance data.
+     * Optimized to reduce 206 API calls to 1 call.
+     * 
+     * @param startDate Start date of the week
+     * @param endDate   End date of the week
+     * @return Weekly summary by shift
+     */
+    public ResWeeklyByShift getWeeklyByShift(LocalDate startDate, LocalDate endDate) {
+        // Step 1: Fetch all active shifts
+        var shifts = shiftRepository.findByIsActiveTrue();
+
+        // Step 2: Fetch all work schedules in date range
+        var workSchedules = workScheduleRepository.findByWorkDateBetween(startDate, endDate);
+
+        // Step 3: Fetch all attendances in date range
+        var attendances = attendanceRepository.findByWorkDateBetween(startDate, endDate);
+
+        // Build attendance map by work schedule ID for O(1) lookup
+        Map<Long, Attendance> attendanceMap = attendances.stream()
+                .collect(Collectors.toMap(
+                        att -> att.getWorkSchedule().getId(),
+                        att -> att,
+                        (a1, a2) -> a1 // In case of duplicates, keep first
+                ));
+
+        // Group work schedules by shift ID and date
+        Map<Long, Map<LocalDate, List<WorkSchedule>>> schedulesByShiftAndDate = workSchedules.stream()
+                .collect(Collectors.groupingBy(
+                        ws -> ws.getShift().getId(),
+                        Collectors.groupingBy(WorkSchedule::getWorkDate)));
+
+        // Build response
+        List<ResWeeklyByShift.ShiftScheduleSummary> shiftSummaries = shifts.stream()
+                .map(shift -> {
+                    // Build shift info
+                    ResWeeklyByShift.Shift shiftInfo = new ResWeeklyByShift.Shift(
+                            shift.getId(),
+                            shift.getName(),
+                            shift.getStartTime(),
+                            shift.getEndTime(),
+                            shift.getStandardHours(),
+                            shift.getColorCode());
+
+                    // Build daily schedules for this shift
+                    List<ResWeeklyByShift.DailySchedule> dailySchedules = new ArrayList<>();
+                    LocalDate currentDate = startDate;
+
+                    while (!currentDate.isAfter(endDate)) {
+                        LocalDate date = currentDate;
+
+                        // Get schedules for this shift and date
+                        List<WorkSchedule> dateSchedules = schedulesByShiftAndDate
+                                .getOrDefault(shift.getId(), Map.of())
+                                .getOrDefault(date, List.of());
+
+                        // Build schedule with attendance
+                        List<ResWeeklyByShift.ScheduleWithAttendance> schedulesWithAttendance = dateSchedules.stream()
+                                .map(ws -> {
+                                    ResWeeklyByShift.Employee employee = new ResWeeklyByShift.Employee(
+                                            ws.getEmployee().getId(),
+                                            ws.getEmployee().getFullname(),
+                                            ws.getEmployee().getEmail());
+
+                                    ResWeeklyByShift.ScheduleWithAttendance schedule = new ResWeeklyByShift.ScheduleWithAttendance(
+                                            ws.getId(),
+                                            ws.getWorkDate(),
+                                            employee);
+
+                                    // Find attendance for this work schedule
+                                    Attendance att = attendanceMap.get(ws.getId());
+                                    if (att != null) {
+                                        schedule.setAttendance(new ResWeeklyByShift.Attendance(
+                                                att.getId(),
+                                                att.getCheckIn(),
+                                                att.getCheckOut(),
+                                                att.getLateTime(),
+                                                att.getEarlyLeave(),
+                                                att.getOvertime()
+                                        // att.getStatus() != null ? att.getStatus().name() : null
+                                        ));
+                                    }
+
+                                    return schedule;
+                                })
+                                .collect(Collectors.toList());
+
+                        dailySchedules.add(new ResWeeklyByShift.DailySchedule(date, schedulesWithAttendance));
+                        currentDate = currentDate.plusDays(1);
+                    }
+
+                    return new ResWeeklyByShift.ShiftScheduleSummary(shiftInfo, dailySchedules);
+                })
+                .collect(Collectors.toList());
+
+        return new ResWeeklyByShift(startDate, endDate, shiftSummaries);
     }
 }

@@ -36,13 +36,13 @@ public class ResEmployeeInfo {
     StatusEnum status;
 
     // // Role info
-    // RoleInfo role;
+    RoleInfo role;
 
     // Salary type hiện tại
     SalaryTypeInfo currentSalaryType;
 
     // // Shift rates hiện đang active
-    // List<ShiftRateInfo> activeShiftRates;
+    List<ShiftRateInfo> activeShiftRates;
 
     // // Monthly salary hiện đang active
     // MonthlySalaryInfo currentMonthlySalary;
@@ -61,50 +61,50 @@ public class ResEmployeeInfo {
         this.hiredDate = employee.getHiredDate();
         this.status = employee.getStatus();
 
-        // // Role
-        // if (employee.getRole() != null) {
-        // this.role = new RoleInfo(employee.getRole().getId(),
-        // employee.getRole().getName());
-        // }
+        // Role
+        if (employee.getRole() != null) {
+            this.role = new RoleInfo(employee.getRole().getId(),
+                    employee.getRole().getName());
+        }
 
         // Current salary type
-        // EmployeeSalaryType currentSalaryType = employee.getCurrentSalaryType();
-        // if (currentSalaryType != null) {
-        // this.currentSalaryType = new SalaryTypeInfo(
-        // currentSalaryType.getSalaryType(),
-        // currentSalaryType.getEffectiveFrom(),
-        // currentSalaryType.getEffectiveTo(),
-        // currentSalaryType.getNote());
-        // }
+        EmployeeSalaryType currentSalaryType = employee.getCurrentSalaryType();
+        if (currentSalaryType != null) {
+            this.currentSalaryType = new SalaryTypeInfo(
+                    currentSalaryType.getSalaryType(),
+                    currentSalaryType.getEffectiveFrom(),
+                    currentSalaryType.getEffectiveTo(),
+                    currentSalaryType.getNote());
+        }
 
-        // // Active shift rates
-        // this.activeShiftRates = employee.getActiveShiftRates().stream()
-        // .map(rate -> {
-        // if (rate instanceof ShiftBaseRate) {
-        // return new ShiftRateInfo(
-        // rate.getId(),
-        // "BASE",
-        // rate.getDayType(),
-        // rate.getBaseRate(),
-        // rate.getRateMultiplier(),
-        // null,
-        // null,
-        // null);
-        // } else if (rate instanceof ShiftSpecialRate special) {
-        // return new ShiftRateInfo(
-        // rate.getId(),
-        // "SPECIAL",
-        // rate.getDayType(),
-        // rate.getBaseRate(),
-        // rate.getRateMultiplier(),
-        // special.getShift() != null ? special.getShift().getId() : null,
-        // special.getPriority(),
-        // special.getNote());
-        // }
-        // return null;
-        // })
-        // .filter(info -> info != null)
-        // .collect(Collectors.toList());
+        // Active shift rates
+        this.activeShiftRates = employee.getActiveShiftRates().stream()
+                .map(rate -> {
+                    if (rate instanceof ShiftBaseRate) {
+                        return new ShiftRateInfo(
+                                rate.getId(),
+                                "BASE",
+                                rate.getDayType(),
+                                rate.getBaseRate(),
+                                rate.getRateMultiplier(),
+                                null,
+                                null,
+                                null);
+                    } else if (rate instanceof ShiftSpecialRate special) {
+                        return new ShiftRateInfo(
+                                rate.getId(),
+                                "SPECIAL",
+                                rate.getDayType(),
+                                rate.getBaseRate(),
+                                rate.getRateMultiplier(),
+                                special.getShift() != null ? special.getShift().getId() : null,
+                                special.getPriority(),
+                                special.getNote());
+                    }
+                    return null;
+                })
+                .filter(info -> info != null)
+                .collect(Collectors.toList());
 
         // // Current monthly salary
         // MonthlySalary currentMonthlySalary = employee.getCurrentMonthlySalary();

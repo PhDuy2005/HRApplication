@@ -23,5 +23,7 @@ public interface WorkScheduleRepository extends JpaRepository<WorkSchedule, Long
 
     List<WorkSchedule> findByShiftIdAndWorkDateBetween(Long shiftId, LocalDate startDate, LocalDate endDate);
 
+    List<WorkSchedule> findByWorkDateBetween(LocalDate startDate, LocalDate endDate);
+
     boolean existsByEmployeeIdAndShiftIdAndWorkDate(Long employeeId, Long shiftId, LocalDate workDate);
 }

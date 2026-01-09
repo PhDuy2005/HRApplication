@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.se347.nhom4.HRApplication.domain.requestDTO.ReqCreateEmpDTO;
+import com.se347.nhom4.HRApplication.domain.responseDTO.ResEmployeeBasic;
 import com.se347.nhom4.HRApplication.domain.responseDTO.ResEmployeeInfo;
 import com.se347.nhom4.HRApplication.domain.table.Employee;
 import com.se347.nhom4.HRApplication.service.EmployeeService;
@@ -29,10 +30,11 @@ public class EmployeeController {
     private final EmployeeService employeeService;
 
     @GetMapping
-    public ResponseEntity<List<ResEmployeeInfo>> getAllEmployees() {
+    @ApiMessage("Lấy danh sách tất cả nhân viên")
+    public ResponseEntity<List<ResEmployeeBasic>> getAllEmployees() {
         return ResponseEntity.ok(
                 employeeService.findAll().stream()
-                        .map(ResEmployeeInfo::new)
+                        .map(ResEmployeeBasic::new)
                         .toList());
     }
 
@@ -49,10 +51,10 @@ public class EmployeeController {
      */
     @GetMapping("/active")
     @ApiMessage("Lấy danh sách nhân viên đang hoạt động")
-    public ResponseEntity<List<ResEmployeeInfo>> getActiveEmployees() {
+    public ResponseEntity<List<ResEmployeeBasic>> getActiveEmployees() {
         System.out.println(">>>EMPLOYEE MODULE: Fetching all active employees");
-        List<ResEmployeeInfo> activeEmployees = employeeService.findAllActive().stream()
-                .map(ResEmployeeInfo::new)
+        List<ResEmployeeBasic> activeEmployees = employeeService.findAllActive().stream()
+                .map(ResEmployeeBasic::new)
                 .toList();
         System.out.println(">>>EMPLOYEE MODULE: Successfully fetched " + activeEmployees.size() + " active employees");
         return ResponseEntity.ok(activeEmployees);

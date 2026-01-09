@@ -97,6 +97,8 @@ public class DatabaseInitializer implements CommandLineRunner {
         createPermission("Tạo chấm công thủ công", "/api/v1/attendances", "POST", "ATTENDANCE");
         createPermission("Cập nhật chấm công", "/api/v1/attendances/{id}", "PUT", "ATTENDANCE");
         createPermission("Xóa chấm công", "/api/v1/attendances/{id}", "DELETE", "ATTENDANCE");
+        createPermission("Xem tổng hợp chấm công theo tuần", "/api/v2/attendances/weekly-summary", "GET",
+                "ATTENDANCE");
 
         // ==================== WORK SCHEDULE MODULE ====================
         createPermission("Xem lịch làm việc", "/api/v1/work-schedules", "GET", "WORK_SCHEDULE");
@@ -116,6 +118,8 @@ public class DatabaseInitializer implements CommandLineRunner {
         createPermission("Kiểm tra lịch làm việc tồn tại", "/api/v1/work-schedules/exists", "GET", "WORK_SCHEDULE");
         createPermission("Tạo lịch làm việc", "/api/v1/work-schedules", "POST", "WORK_SCHEDULE");
         createPermission("Cập nhật lịch làm việc", "/api/v1/work-schedules/{id}", "PUT", "WORK_SCHEDULE");
+        createPermission("Xem lịch làm việc theo ca theo tuần (Tối ưu)", "/api/v2/work-schedules/weekly-by-shift",
+                "GET", "WORK_SCHEDULE");
         createPermission("Xóa lịch làm việc", "/api/v1/work-schedules/{id}", "DELETE", "WORK_SCHEDULE");
 
         // ==================== SHIFT MODULE ====================
@@ -151,6 +155,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         // ==================== SALARY MODULE ====================
         createPermission("Xem bảng lương", "/api/v1/salaries", "GET", "SALARY");
         createPermission("Xem chi tiết lương", "/api/v1/salaries/{id}", "GET", "SALARY");
+        createPermission("Xem lương theo nhân viên", "/api/v1/salaries/employee/{empId}", "GET", "SALARY");
         createPermission("Tính lương", "/api/v1/salaries/calculate", "POST", "SALARY");
         createPermission("Cập nhật lương", "/api/v1/salaries/{id}", "PUT", "SALARY");
 
@@ -209,10 +214,12 @@ public class DatabaseInitializer implements CommandLineRunner {
         addPermissionToList(employeePermissions, "Xem chi tiết chấm công");
         addPermissionToList(employeePermissions, "Xem chấm công của bản thân");
         addPermissionToList(employeePermissions, "Xem chấm công theo lịch làm việc");
+        addPermissionToList(employeePermissions, "Xem tổng hợp chấm công theo tuần");
 
         // Xem lịch làm việc của mình
         addPermissionToList(employeePermissions, "Xem lịch làm việc");
         addPermissionToList(employeePermissions, "Xem chi tiết lịch làm việc");
+        addPermissionToList(employeePermissions, "Xem lịch làm việc theo ca theo tuần (Tối ưu)");
 
         // Xem ca làm việc
         addPermissionToList(employeePermissions, "Xem danh sách ca làm việc");
@@ -225,6 +232,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         // Xem lương của mình
         addPermissionToList(employeePermissions, "Xem bảng lương");
         addPermissionToList(employeePermissions, "Xem chi tiết lương");
+        addPermissionToList(employeePermissions, "Xem lương theo nhân viên");
 
         Role employeeRole = new Role();
         employeeRole.setName("EMPLOYEE");
@@ -348,6 +356,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             addPermissionToList(employeePermissions, "Xem chi tiết chấm công");
             addPermissionToList(employeePermissions, "Xem chấm công của bản thân");
             addPermissionToList(employeePermissions, "Xem chấm công theo lịch làm việc");
+            addPermissionToList(employeePermissions, "Xem tổng hợp chấm công theo tuần");
 
             // Xem lịch làm việc
             addPermissionToList(employeePermissions, "Xem lịch làm việc");
@@ -359,6 +368,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             addPermissionToList(employeePermissions, "Xem lịch làm việc nhân viên theo ngày");
             addPermissionToList(employeePermissions, "Xem lịch làm việc nhân viên theo khoảng thời gian");
             addPermissionToList(employeePermissions, "Kiểm tra lịch làm việc tồn tại");
+            addPermissionToList(employeePermissions, "Xem lịch làm việc theo ca theo tuần (Tối ưu)");
 
             // Xem ca làm việc
             addPermissionToList(employeePermissions, "Xem danh sách ca làm việc");
@@ -373,6 +383,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             // Xem lương
             addPermissionToList(employeePermissions, "Xem bảng lương");
             addPermissionToList(employeePermissions, "Xem chi tiết lương");
+            addPermissionToList(employeePermissions, "Xem lương theo nhân viên");
 
             employeeRole.setPermissions(employeePermissions);
             roleService.save(employeeRole);

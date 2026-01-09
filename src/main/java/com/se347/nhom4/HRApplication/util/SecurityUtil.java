@@ -65,13 +65,17 @@ public class SecurityUtil {
                     .toList();
         }
 
+        // Lấy tên role của user
+        String roleName = dto.getUser().getRole() != null ? dto.getUser().getRole().getName() : null;
+
        //@formatter:off
        JwtClaimsSet claims = JwtClaimsSet.builder()
        .issuedAt(now)
        .expiresAt(expirationTime)
        .subject(email)
        .claim("user", userInsideToken) //Lưu thông tin cần viết về user trong token
-       .claim("permission", listAuthorities)
+    //    .claim("permission", listAuthorities)
+       .claim("role", roleName)
        .build();
 
         JwsHeader jwsHeader = JwsHeader.with(JWT_ALGORITHM).build();
