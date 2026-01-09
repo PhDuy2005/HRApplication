@@ -277,6 +277,7 @@ public class PayrollService {
 
     /**
      * Tìm ShiftOtRate đang active cho nhân viên theo loại ngày
+     * Tìm theo dayType (vì OtType giờ chỉ còn ALL_OT)
      */
     private ShiftOtRate findActiveShiftOtRate(Employee employee, DayTypeEnum dayType, Instant now) {
         return employee.getShiftOtRates().stream()

@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import com.se347.nhom4.HRApplication.util.enums.DayTypeEnum;
+// import com.se347.nhom4.HRApplication.util.enums.OtTypeEnum;
 import com.se347.nhom4.HRApplication.util.enums.SalaryTypeEnum;
 import com.se347.nhom4.HRApplication.util.enums.StatusEnum;
 
@@ -42,6 +43,13 @@ public class ReqCreateEmpDTO {
      * Chỉ áp dụng khi empSalaryType.salaryType = MONTHLY.
      */
     CreateEmpMonthlySalary empMonthlySalary;
+
+    /**
+     * Cấu hình OT rates cho nhân viên (tính lương làm thêm giờ).
+     * Danh sách các tỷ lệ OT theo loại ngày và loại OT.
+     * TODO: Review - Tính năng mới cần kiểm tra
+     */
+    // List<CreateEmpOtRate> empOtRates;
 
     @Data
     @AllArgsConstructor
@@ -91,4 +99,22 @@ public class ReqCreateEmpDTO {
         private LocalDate effectiveTo;
         private String note;
     }
+
+    /**
+     * DTO để tạo OT Rate cho nhân viên mới.
+     * Cấu hình tỷ lệ lương làm thêm giờ theo loại ngày và loại OT.
+     * TODO: Review - Tính năng mới cần kiểm tra
+     */
+    // @Data
+    // @AllArgsConstructor
+    // @NoArgsConstructor
+    // @Builder
+    // public static class CreateEmpOtRate {
+    // private OtTypeEnum otType; // NORMAL_OT | WEEKEND_OT | HOLIDAY_OT
+    // private DayTypeEnum dayType; // WEEKDAY | SATURDAY | SUNDAY
+    // private BigDecimal rateMultiplier; // Hệ số nhân (VD: 1.5, 2.0, 3.0)
+    // private Boolean isActive;
+    // private Instant effectiveFrom;
+    // private Instant effectiveTo;
+    // }
 }

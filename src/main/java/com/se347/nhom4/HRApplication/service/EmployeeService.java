@@ -285,6 +285,26 @@ public class EmployeeService {
         // Monthly salary không được xử lý - set null
         newEmp.setMonthlySalaries(null);
 
+        // TODO: Review - Xử lý OT Rates khi tạo nhân viên mới
+        // Tạo OT Rates cho nhân viên
+        // List<ShiftOtRate> empOtRates = new ArrayList<>();
+        // if (dto.getEmpOtRates() != null && !dto.getEmpOtRates().isEmpty()) {
+        // for (ReqCreateEmpDTO.CreateEmpOtRate otRateDTO : dto.getEmpOtRates()) {
+        // ShiftOtRate otRate = ShiftOtRate.builder()
+        // .employee(newEmp)
+        // .otType(otRateDTO.getOtType())
+        // .dayType(otRateDTO.getDayType())
+        // .rateMultiplier(otRateDTO.getRateMultiplier())
+        // .isActive(otRateDTO.getIsActive() != null ? otRateDTO.getIsActive() : true)
+        // .effectiveFrom(otRateDTO.getEffectiveFrom() != null ?
+        // otRateDTO.getEffectiveFrom() : Instant.now())
+        // .effectiveTo(otRateDTO.getEffectiveTo())
+        // .build();
+        // empOtRates.add(otRate);
+        // }
+        // }
+        // newEmp.setShiftOtRates(empOtRates);
+
         // Khởi tạo các list còn lại để tránh null pointer
         newEmp.setShiftOtRates(new ArrayList<>());
         newEmp.setEmployeePenalties(new ArrayList<>());
