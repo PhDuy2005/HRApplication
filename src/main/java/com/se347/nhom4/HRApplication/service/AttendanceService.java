@@ -25,6 +25,7 @@ import com.se347.nhom4.HRApplication.domain.table.WorkSite;
 import com.se347.nhom4.HRApplication.repository.AttendanceRepository;
 import com.se347.nhom4.HRApplication.repository.EmployeeRepository;
 import com.se347.nhom4.HRApplication.repository.WorkScheduleRepository;
+import com.se347.nhom4.HRApplication.util.enums.AttendanceStatusEnum;
 
 import lombok.RequiredArgsConstructor;
 
@@ -37,6 +38,10 @@ public class AttendanceService {
     private final EmployeeRepository employeeRepository;
 
     private static final ZoneId VN_TZ = ZoneId.of("Asia/Ho_Chi_Minh");
+    
+    // Cửa sổ check-in: cho phép check-in từ trước giờ vào ca 30 phút đến trước giờ tan ca
+    private static final int CHECK_IN_WINDOW_MINUTES_BEFORE = 30;
+    private static final int CHECK_OUT_MAX_HOURS_AFTER = 6;
 
     // =========================
     // API
@@ -65,8 +70,15 @@ public class AttendanceService {
             throw new IllegalArgumentException("Ca này đã check-in rồi");
         }
 
+        // Validation: Check-in window (từ trước giờ vào ca X phút đến trước giờ tan ca)
+        validateCheckInWindow(schedule);
+
+        // Validation: Không có 2 ca đang mở (nhưng cho phép nếu ca trước đã AUTO_CLOSED)
+        validateNoActiveShift(employeeId, schedule.getWorkDate(), schedule.getId());
+
         Instant now = Instant.now();
         attendance.setCheckIn(now);
+        attendance.setStatus(AttendanceStatusEnum.ACTIVE);
 
         attendance.setCheckInLat(req.getLat());
         attendance.setCheckInLng(req.getLng());
@@ -108,13 +120,22 @@ public class AttendanceService {
             throw new IllegalArgumentException("Ca này đã check-out rồi");
         }
 
+        // Validation: Nếu đã AUTO_CLOSED thì không cho checkout
+        if (attendance.getStatus() == AttendanceStatusEnum.AUTO_CLOSED) {
+            throw new IllegalArgumentException("Ca này đã tự đóng sau 6 tiếng, không thể checkout");
+        }
+
         Instant now = Instant.now();
         if (now.isBefore(attendance.getCheckIn())) {
             System.out.println(">>>ATTENDANCE MODULE: Invalid check-out time for WorkSchedule id: " + schedule.getId());
             throw new IllegalArgumentException("Thời gian check-out không hợp lệ");
         }
 
+        // Validation: Checkout muộn tối đa 6 tiếng sau giờ tan ca
+        validateCheckOutMaxDelay(schedule, now);
+
         attendance.setCheckOut(now);
+        attendance.setStatus(AttendanceStatusEnum.COMPLETED);
 
         attendance.setCheckOutLat(req.getLat());
         attendance.setCheckOutLng(req.getLng());
@@ -123,8 +144,8 @@ public class AttendanceService {
         System.out.println(
                 ">>>ATTENDANCE MODULE: Check-out recorded at " + now + " for WorkSchedule id: " + schedule.getId());
 
-        int totalMinutes = (int) Duration.between(attendance.getCheckIn(), attendance.getCheckOut()).toMinutes();
-        attendance.setTotalWorkTime(Math.max(totalMinutes, 0));
+        // Tính totalWorkTime theo công thức payable minutes (clamp trong khung ca)
+        calculatePayableWorkTime(attendance, schedule);
         System.out.println(">>>ATTENDANCE MODULE: Total work time calculated: " + attendance.getTotalWorkTime()
                 + " minutes for WorkSchedule id: " + schedule.getId());
 
@@ -178,6 +199,140 @@ public class AttendanceService {
     // ======================
     // Validation + Helpers
     // ======================
+
+    /**
+     * Validation: Check-in window - chỉ cho check-in từ trước giờ vào ca X phút đến trước giờ tan ca
+     */
+    private void validateCheckInWindow(WorkSchedule schedule) {
+        if (schedule.getShift() == null) {
+            return; // Không có shift thì không validate
+        }
+
+        LocalDate workDate = schedule.getWorkDate();
+        LocalTime startTime = schedule.getShift().getStartTime();
+        LocalTime endTime = schedule.getShift().getEndTime();
+
+        if (workDate == null || startTime == null || endTime == null) {
+            return;
+        }
+
+        ZonedDateTime scheduledStart = workDate.atTime(startTime).atZone(VN_TZ);
+        ZonedDateTime windowStart = scheduledStart.minusMinutes(CHECK_IN_WINDOW_MINUTES_BEFORE);
+
+        // Ca qua ngày: endTime < startTime (vd 22:00 -> 06:00)
+        LocalDate endDate = endTime.isBefore(startTime) ? workDate.plusDays(1) : workDate;
+        ZonedDateTime scheduledEnd = endDate.atTime(endTime).atZone(VN_TZ);
+
+        ZonedDateTime now = Instant.now().atZone(VN_TZ);
+
+        if (now.isBefore(windowStart)) {
+            throw new IllegalArgumentException(
+                    "Chưa đến cửa sổ check-in (cho phép từ " + CHECK_IN_WINDOW_MINUTES_BEFORE
+                            + " phút trước giờ vào ca)");
+        }
+
+        if (now.isAfter(scheduledEnd) || now.isEqual(scheduledEnd)) {
+            throw new IllegalArgumentException("Đã quá giờ tan ca, không thể check-in");
+        }
+    }
+
+    /**
+     * Validation: Không có 2 ca đang mở (nhưng cho phép nếu ca trước đã AUTO_CLOSED)
+     */
+    private void validateNoActiveShift(Long employeeId, LocalDate workDate, Long currentScheduleId) {
+        // Tìm các attendance của nhân viên cùng ngày, đã check-in nhưng chưa check-out và chưa AUTO_CLOSED
+        List<Attendance> activeAttendances = attendanceRepository
+                .findByEmployee_IdAndWorkDateAndCheckInNotNullAndCheckOutNullAndStatusNotAutoClosed(
+                        employeeId, workDate);
+
+        // Loại bỏ attendance của ca hiện tại
+        activeAttendances = activeAttendances.stream()
+                .filter(a -> a.getWorkSchedule() == null
+                        || !a.getWorkSchedule().getId().equals(currentScheduleId))
+                .toList();
+
+        if (!activeAttendances.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Bạn đang có ca chưa checkout. Vui lòng checkout ca trước đó trước khi check-in ca mới");
+        }
+    }
+
+    /**
+     * Validation: Checkout muộn tối đa 6 tiếng sau giờ tan ca
+     */
+    private void validateCheckOutMaxDelay(WorkSchedule schedule, Instant now) {
+        if (schedule.getShift() == null) {
+            return;
+        }
+
+        LocalDate workDate = schedule.getWorkDate();
+        LocalTime endTime = schedule.getShift().getEndTime();
+
+        if (workDate == null || endTime == null) {
+            return;
+        }
+
+        // Ca qua ngày: endTime < startTime (vd 22:00 -> 06:00)
+        LocalTime startTime = schedule.getShift().getStartTime();
+        LocalDate endDate = endTime.isBefore(startTime) ? workDate.plusDays(1) : workDate;
+        ZonedDateTime scheduledEnd = endDate.atTime(endTime).atZone(VN_TZ);
+        ZonedDateTime maxCheckOutTime = scheduledEnd.plusHours(CHECK_OUT_MAX_HOURS_AFTER);
+
+        ZonedDateTime nowVn = now.atZone(VN_TZ);
+
+        if (nowVn.isAfter(maxCheckOutTime)) {
+            throw new IllegalArgumentException(
+                    "Đã quá " + CHECK_OUT_MAX_HOURS_AFTER
+                            + " tiếng sau giờ tan ca, không thể checkout. Ca này sẽ tự động đóng");
+        }
+    }
+
+    /**
+     * Tính totalWorkTime theo công thức payable minutes (clamp trong khung ca)
+     * pay_start = max(checkin, shift_start)
+     * pay_end = min(checkout, shift_end)
+     * pay_minutes = max(0, pay_end - pay_start)
+     * Và cap: pay_minutes <= shift_minutes
+     */
+    private void calculatePayableWorkTime(Attendance attendance, WorkSchedule schedule) {
+        if (schedule.getShift() == null || attendance.getCheckIn() == null
+                || attendance.getCheckOut() == null) {
+            attendance.setTotalWorkTime(0);
+            return;
+        }
+
+        LocalDate workDate = schedule.getWorkDate();
+        LocalTime startTime = schedule.getShift().getStartTime();
+        LocalTime endTime = schedule.getShift().getEndTime();
+
+        if (workDate == null || startTime == null || endTime == null) {
+            attendance.setTotalWorkTime(0);
+            return;
+        }
+
+        ZonedDateTime scheduledStart = workDate.atTime(startTime).atZone(VN_TZ);
+        LocalDate endDate = endTime.isBefore(startTime) ? workDate.plusDays(1) : workDate;
+        ZonedDateTime scheduledEnd = endDate.atTime(endTime).atZone(VN_TZ);
+
+        ZonedDateTime checkInVn = attendance.getCheckIn().atZone(VN_TZ);
+        ZonedDateTime checkOutVn = attendance.getCheckOut().atZone(VN_TZ);
+
+        // pay_start = max(checkin, shift_start)
+        ZonedDateTime payStart = checkInVn.isAfter(scheduledStart) ? checkInVn : scheduledStart;
+
+        // pay_end = min(checkout, shift_end)
+        ZonedDateTime payEnd = checkOutVn.isBefore(scheduledEnd) ? checkOutVn : scheduledEnd;
+
+        // pay_minutes = max(0, pay_end - pay_start)
+        int payMinutes = (int) Duration.between(payStart, payEnd).toMinutes();
+        payMinutes = Math.max(0, payMinutes);
+
+        // Cap: pay_minutes <= shift_minutes
+        int shiftMinutes = (int) Duration.between(scheduledStart, scheduledEnd).toMinutes();
+        payMinutes = Math.min(payMinutes, shiftMinutes);
+
+        attendance.setTotalWorkTime(payMinutes);
+    }
 
     private void validateOwner(WorkSchedule schedule, Long employeeId) {
         System.out.println(">>>ATTENDANCE MODULE: Validating ownership for employeeId: " + employeeId +
@@ -237,6 +392,7 @@ public class AttendanceService {
                 .employee(emp)
                 .workSchedule(schedule)
                 .workDate(workDate)
+                .status(AttendanceStatusEnum.ACTIVE)
                 .build();
     }
 
@@ -303,6 +459,7 @@ public class AttendanceService {
                 .overtime(a.getOvertime())
                 .lateTime(a.getLateTime())
                 .earlyLeave(a.getEarlyLeave())
+                .status(a.getStatus() != null ? a.getStatus().name() : null)
 
                 // GPS
                 .checkInLat(a.getCheckInLat())
