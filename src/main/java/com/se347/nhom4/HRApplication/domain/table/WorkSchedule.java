@@ -41,11 +41,6 @@ public class WorkSchedule {
     @JoinColumn(name = "shift_id", nullable = false)
     private Shift shift;
 
-    /**
-     * "Ngày làm" theo schema là DATE, nhưng bạn yêu cầu chuyển sang Instant.
-     * Quy ước: lưu Instant đại diện cho đầu ngày (00:00) theo timezone bạn chọn
-     * trong service.
-     */
     @jakarta.persistence.Column(name = "work_date", nullable = false)
     private LocalDate workDate;
 

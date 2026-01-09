@@ -3,8 +3,12 @@ package com.se347.nhom4.HRApplication.domain.table;
 import java.time.Instant;
 import java.time.LocalDate;
 
+import com.se347.nhom4.HRApplication.util.enums.AttendanceStatusEnum;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -68,6 +72,16 @@ public class Attendance {
      */
     @Column(name = "early_leave")
     private Integer earlyLeave;
+
+    /**
+     * Trạng thái của attendance
+     * ACTIVE: Ca đang mở (đã check-in, chưa check-out)
+     * AUTO_CLOSED: Ca đã tự đóng sau 6 tiếng (không tính lương)
+     * COMPLETED: Ca đã hoàn thành (đã check-out)
+     */
+    @Column(name = "status")
+    @Enumerated(EnumType.STRING)
+    private AttendanceStatusEnum status;
 
     // ==========================
     // GPS - vị trí lúc check-out

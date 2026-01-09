@@ -21,6 +21,7 @@ public class ResAttendance {
     private Integer overtime;
     private Integer lateTime;
     private Integer earlyLeave;
+    private String status; // AttendanceStatusEnum as string
 
     // GPS check-in
     private Double checkInLat;
