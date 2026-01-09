@@ -16,9 +16,11 @@ import com.se347.nhom4.HRApplication.domain.table.WorkSchedule;
 import com.se347.nhom4.HRApplication.domain.table.WorkSite;
 import com.se347.nhom4.HRApplication.repository.AttendanceRepository;
 import com.se347.nhom4.HRApplication.repository.EmployeeRepository;
+import com.se347.nhom4.HRApplication.repository.PayrollRepository;
 import com.se347.nhom4.HRApplication.repository.ShiftRepository;
 import com.se347.nhom4.HRApplication.repository.WorkScheduleRepository;
 import com.se347.nhom4.HRApplication.repository.WorkSiteRepository;
+import com.se347.nhom4.HRApplication.util.enums.PayrollStatusEnum;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +34,7 @@ public class WorkScheduleService {
     private final ShiftRepository shiftRepository;
     private final WorkSiteRepository workSiteRepository;
     private final AttendanceRepository attendanceRepository;
+    private final PayrollRepository payrollRepository;
 
     // gán WorkSite cho WorkSchedule (phục vụ GPS chấm công)
     @Transactional
@@ -139,6 +142,10 @@ public class WorkScheduleService {
      * Create new work schedule.
      */
     public WorkSchedule createWorkSchedule(WorkSchedule workSchedule) {
+        assertPayrollOpen(
+                workSchedule.getEmployee() != null ? workSchedule.getEmployee().getId() : null,
+                workSchedule.getWorkDate());
+
         // kiểm tra worksite id
         if (workSchedule.getWorkSite() == null || workSchedule.getWorkSite().getId() == null)
             throw new IllegalArgumentException("workSite.id is required");
@@ -159,6 +166,12 @@ public class WorkScheduleService {
     public WorkSchedule updateWorkSchedule(Long id, WorkSchedule req) {
         WorkSchedule existing = workScheduleRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("WorkSchedule not found: " + id));
+
+        // Khóa chỉnh sửa nếu payroll của tháng đã chốt (APPROVED/PAID)
+        Long oldEmployeeId = existing.getEmployee() != null ? existing.getEmployee().getId() : null;
+        LocalDate oldWorkDate = existing.getWorkDate();
+        assertPayrollOpen(oldEmployeeId, oldWorkDate);
+        assertNoCheckedInAttendance(existing.getId());
 
         // 1) WorkDate
         if (req.getWorkDate() != null) {
@@ -200,14 +213,31 @@ public class WorkScheduleService {
             existing.setWorkSite(site);
         }
 
+        // Nếu sau khi update đổi nhân viên hoặc ngày thì cũng khóa theo payroll mới
+        Long newEmployeeId = existing.getEmployee() != null ? existing.getEmployee().getId() : null;
+        LocalDate newWorkDate = existing.getWorkDate();
+        if ((oldEmployeeId != null && !oldEmployeeId.equals(newEmployeeId))
+                || (oldWorkDate != null && !oldWorkDate.equals(newWorkDate))) {
+            assertPayrollOpen(newEmployeeId, newWorkDate);
+        }
+
         return workScheduleRepository.save(existing);
     }
 
     /**
      * Delete work schedule by ID.
      */
+    @Transactional
     public void deleteById(Long id) {
-        workScheduleRepository.deleteById(id);
+        WorkSchedule existing = workScheduleRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("WorkSchedule not found: " + id));
+
+        assertPayrollOpen(
+                existing.getEmployee() != null ? existing.getEmployee().getId() : null,
+                existing.getWorkDate());
+        assertNoCheckedInAttendance(existing.getId());
+
+        workScheduleRepository.delete(existing);
     }
 
     /**
@@ -215,6 +245,35 @@ public class WorkScheduleService {
      */
     public boolean existsByEmployeeIdAndShiftIdAndWorkDate(Long employeeId, Long shiftId, LocalDate workDate) {
         return workScheduleRepository.existsByEmployeeIdAndShiftIdAndWorkDate(employeeId, shiftId, workDate);
+    }
+
+    private void assertPayrollOpen(Long employeeId, LocalDate workDate) {
+        if (employeeId == null || workDate == null) {
+            return;
+        }
+
+        int month = workDate.getMonthValue();
+        int year = workDate.getYear();
+        payrollRepository.findByEmployee_IdAndMonthAndYear(employeeId, month, year)
+                .ifPresent(payroll -> {
+                    PayrollStatusEnum status = payroll.getStatus();
+                    if (status == PayrollStatusEnum.APPROVED || status == PayrollStatusEnum.PAID) {
+                        throw new IllegalStateException(
+                                "Bảng lương tháng " + month + "/" + year + " của nhân viên này đã chốt, không thể thay đổi lịch làm");
+                    }
+                });
+    }
+
+    private void assertNoCheckedInAttendance(Long workScheduleId) {
+        if (workScheduleId == null) {
+            return;
+        }
+        attendanceRepository.findByWorkSchedule_Id(workScheduleId).ifPresent(attendance -> {
+            if (attendance.getCheckIn() != null) {
+                throw new IllegalStateException(
+                        "Ca đã được check-in, không thể thay đổi lịch làm");
+            }
+        });
     }
 
     /**
